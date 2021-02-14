@@ -1,6 +1,6 @@
 """
 交易信号
-利用最新的成交价格判断的
+用挂单判断
 """
 import sys
 import json
