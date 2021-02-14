@@ -1,6 +1,6 @@
 """
 交易信号
-用挂单判断
+用买一卖一挂单判断
 """
 import sys
 import json
@@ -26,20 +26,27 @@ def get_trade_info(coin_1, coin_2):
 
     if (coin_1, coin_2) in pairs:
         key = (coin_1, coin_2)
-    elif (coin_2, coin_1) in pairs:
-        key = (coin_2, coin_1)
     else:
         return ()
 
     return pairs[key]
 
 
-def set_trade_info(coin_base, coin_target, price, size, timestamp):
+def set_trade_info(coin_base, coin_target, best_ask, best_bid, best_ask_size, best_bid_size, timestamp):
     global pairs
 
+    # 买操作，看的是卖一 best_ask
     pairs[(coin_base, coin_target)] = (
-        float(price),
-        float(size),
+        float(best_ask),
+        float(best_ask_size),
+        timestamp,
+        coin_base
+    )
+
+    # 卖操作
+    pairs[(coin_target, coin_base)] = (
+        float(best_bid),
+        float(best_bid_size),
         timestamp,
         coin_base
     )
@@ -96,7 +103,6 @@ spotAPI = spot.SpotAPI(api_key, secret_key, passphrase, False)
 result = spotAPI.get_coin_info()
 # print(json.dumps(result))
 
-channels = []               # channels = ["spot/trade:BTC-USDT"]
 pair_set = {}               # pair_set['BTC'] = 1;
 pairs = {}                  # pairs[('USDT', 'BTC')] = (price, size, timestamp, base_coin)
 triangle_pairs = []         # triangle_pairs[] = (base, target1, target2)
@@ -107,7 +113,6 @@ for coin_info in result:
     # min_size = coin_info['min_size']
     coins = instrument_id.split('-')
 
-    channels.append('spot/trade:' + instrument_id)
     pair_set[coins[0]] = 1
     pair_set[coins[1]] = 1
     pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1])
@@ -144,7 +149,7 @@ while True:
     info = json.loads(line[1])
     if not info:
         continue
-    if 'table' not in info or not info['table'] == 'spot/trade':
+    if 'table' not in info or not info['table'] == 'spot/ticker':
         continue
 
     data = info['data'][0]
@@ -158,10 +163,10 @@ while True:
     set_trade_info(
         coin_base=coins[1],
         coin_target=coins[0],
-        price=data['price'],
-        size=data['size'],
+        best_ask=data['best_ask'],
+        best_bid=data['best_bid'],
+        best_ask_size=data['best_ask_size'],
+        best_bid_size=data['best_bid_size'],
         timestamp=data['timestamp']
     )
-
-
 
