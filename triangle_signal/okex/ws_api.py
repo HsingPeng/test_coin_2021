@@ -68,7 +68,7 @@ class WsAPI:
     def update_bids(self, res, bids_p, timestamp):
         # 获取增量bids数据
         bids_u = res['data'][0]['bids']
-        print(timestamp + '增量数据bids为：' + str(bids_u))
+        print(timestamp, '增量数据bids为：' + str(bids_u), sep="\t")
         # print('档数为：' + str(len(bids_u)))
         # bids合并
         for i in bids_u:
@@ -93,7 +93,7 @@ class WsAPI:
     def update_asks(self, res, asks_p, timestamp):
         # 获取增量asks数据
         asks_u = res['data'][0]['asks']
-        print(timestamp + '增量数据asks为：' + str(asks_u))
+        print(timestamp, '增量数据asks为：' + str(asks_u), sep="\t")
         # print('档数为：' + str(len(asks_u)))
         # asks合并
         for i in asks_u:
@@ -196,21 +196,23 @@ class WsAPI:
                                 res_b = await ws.recv()
                                 timestamp = self.get_timestamp()
                                 res = self.inflate(res_b).decode('utf-8')
-                                print(timestamp + res)
+                                print(timestamp, res, sep="\t")
                                 continue
                             except Exception as e:
                                 timestamp = self.get_timestamp()
-                                print(timestamp + "正在重连……")
+                                print(timestamp, "正在重连……", sep="\t")
                                 print(e)
                                 break
 
                         timestamp = self.get_timestamp()
                         res = self.inflate(res_b).decode('utf-8')
+
+                        # 存入队列
                         await ws_queue.put({
                             'timestamp': timestamp,
-                            'res': res
+                            'res': json.loads(res)
                         })
-                        # print(timestamp + "\t" + res)
+                        # print(timestamp, "\t" + res, sep="\t)
 
                         res = eval(res)
                         if 'event' in res:
@@ -286,7 +288,7 @@ class WsAPI:
                 continue
 
     # subscribe channels need login
-    async def subscribe(self, url, api_key, passphrase, secret_key, channels):
+    async def subscribe(self, url, api_key, passphrase, secret_key, channels, ws_queue):
         while True:
             try:
                 async with websockets.connect(url) as ws:
@@ -317,6 +319,7 @@ class WsAPI:
                                 res_b = await ws.recv()
                                 time = self.get_timestamp()
                                 res = self.inflate(res_b).decode('utf-8')
+
                                 print(time + res)
                                 continue
                             except Exception as e:
@@ -327,7 +330,13 @@ class WsAPI:
 
                         time = self.get_timestamp()
                         res = self.inflate(res_b).decode('utf-8')
-                        print(time + res)
+
+                        # 存入队列
+                        await ws_queue.put({
+                            'timestamp': timestamp,
+                            'res': json.loads(res)
+                        })
+                        # print(time, res, sep="\t")
 
             except Exception as e:
                 time = self.get_timestamp()

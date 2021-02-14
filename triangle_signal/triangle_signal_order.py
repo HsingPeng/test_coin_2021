@@ -49,6 +49,7 @@ for coin_info in result:
     pair_set[coins[1]] = 1
     pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1])
     pairs[(coins[0], coins[1])] = (0.0, 0.0, '', coins[1])
+    channels.append('spot/ticker:' + instrument_id)
 
 # 初始化交易链
 for coin1 in pair_set.keys():
