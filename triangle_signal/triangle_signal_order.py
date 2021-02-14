@@ -17,6 +17,10 @@ import okex.system_api as system
 import okex.information_api as information
 import okex.ws_api as ws
 
+loop = asyncio.get_event_loop()
+wsAPI = ws.WsAPI()
+
+url = 'wss://real.okex.com:8443/ws/v3'
 
 api_key = ""
 secret_key = ""
@@ -25,8 +29,8 @@ passphrase = ""
 
 # 拿到所有交易对
 spotAPI = spot.SpotAPI(api_key, secret_key, passphrase, False)
-result = spotAPI.get_coin_info()
-# print(json.dumps(result))
+result = loop.run_until_complete(spotAPI.get_coin_info())
+print(json.dumps(result))
 
 channels = []               # channels = ["spot/trade:BTC-USDT"]
 pair_set = {}               # pair_set['BTC'] = 1;
@@ -62,12 +66,10 @@ for coin1 in pair_set.keys():
 print('start...')
 
 
-loop = asyncio.get_event_loop()
-wsAPI = ws.WsAPI()
-
-# 公共数据 不需要登录（行情，K线，交易数据，资金费率，限价范围，深度数据，标记价格等频道）
-url = 'wss://real.okex.com:8443/ws/v3'
 loop.run_until_complete(wsAPI.subscribe_without_login(url, channels))
+
+tasks = [wsAPI.subscribe_without_login(url, channels)]
+loop.run_until_complete(asyncio.wait(tasks))
 
 loop.close()
 

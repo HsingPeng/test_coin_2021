@@ -1,6 +1,7 @@
-import requests
+import aiohttp
 import json
 from . import consts as c, utils, exceptions
+import os
 
 
 class Client(object):
@@ -14,7 +15,7 @@ class Client(object):
         self.first = first
         self.test = test
 
-    def _request(self, method, request_path, params, cursor=False):
+    async def _request(self, method, request_path, params, cursor=False):
         if method == c.GET:
             request_path = request_path + utils.parse_params_to_str(params)
         # url
@@ -29,7 +30,8 @@ class Client(object):
             timestamp = self._get_timestamp()
 
         body = json.dumps(params) if method == c.POST else ""
-        sign = utils.sign(utils.pre_hash(timestamp, method, request_path, str(body)), self.API_SECRET_KEY)
+        sign = utils.sign(utils.pre_hash(timestamp, method, request_path, str(body)), self.API_SECRET_KEY)\
+            .decode('ascii')
         header = utils.get_header(self.API_KEY, sign, timestamp, self.PASSPHRASE)
 
         if self.test:
@@ -44,15 +46,20 @@ class Client(object):
 
         # send request
         response = None
+        proxy = os.getenv('HTTP_PROXY', None)
+        session = aiohttp.ClientSession()
         if method == c.GET:
-            response = requests.get(url, headers=header)
+            response = await session.get(url, headers=header, proxy=proxy)
         elif method == c.POST:
-            response = requests.post(url, data=body, headers=header)
+            response = await session.post(url, data=body, headers=header, proxy=proxy)
         elif method == c.DELETE:
-            response = requests.delete(url, headers=header)
+            response = await session.delete(url, headers=header, proxy=proxy)
+
+        await response.read()
+        await session.close()
 
         # exception handle
-        if not str(response.status_code).startswith('2'):
+        if not str(response.status).startswith('2'):
             raise exceptions.OkexAPIException(response)
         try:
             res_header = response.headers
@@ -63,12 +70,12 @@ class Client(object):
                     r['after'] = res_header['OK-AFTER']
                 except:
                     pass
-                return response.json(), r
+                return await response.json(), r
             else:
-                return response.json()
+                return await response.json()
 
         except ValueError:
-            raise exceptions.OkexRequestException('Invalid Response: %s' % response.text)
+            raise exceptions.OkexRequestException('Invalid Response: %s' % await response.text())
 
     def _request_without_params(self, method, request_path):
         return self._request(method, request_path, {})
@@ -76,10 +83,16 @@ class Client(object):
     def _request_with_params(self, method, request_path, params, cursor=False):
         return self._request(method, request_path, params, cursor)
 
-    def _get_timestamp(self):
+    async def _get_timestamp(self):
         url = c.API_URL + c.SERVER_TIMESTAMP_URL
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()['iso']
+        session = aiohttp.ClientSession()
+        proxy = os.getenv('HTTP_PROXY', None)
+
+        response = await session.get(url, proxy=proxy)
+        await response.read()
+        await session.close()
+
+        if response.status == 200:
+            return (await response.json())['iso']
         else:
             return ""

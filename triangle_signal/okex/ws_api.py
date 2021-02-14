@@ -182,14 +182,18 @@ class WsAPI:
         l = []
         while True:
             try:
+                print(111)
                 async with websockets.connect(url) as ws:
                     sub_param = {"op": "subscribe", "args": channels}
                     sub_str = json.dumps(sub_param)
+                    print(222)
                     await ws.send(sub_str)
 
                     while True:
                         try:
+                            print(333)
                             res_b = await asyncio.wait_for(ws.recv(), timeout=25)
+                            print(444)
                         except (asyncio.TimeoutError, websockets.exceptions.ConnectionClosed) as e:
                             try:
                                 await ws.send('ping')
