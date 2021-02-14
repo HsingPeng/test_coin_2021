@@ -178,22 +178,18 @@ class WsAPI:
         return out
 
     # subscribe channels un_need login
-    async def subscribe_without_login(self, url, channels):
+    async def subscribe_without_login(self, url, channels, ws_queue):
         l = []
         while True:
             try:
-                print(111)
                 async with websockets.connect(url) as ws:
                     sub_param = {"op": "subscribe", "args": channels}
                     sub_str = json.dumps(sub_param)
-                    print(222)
                     await ws.send(sub_str)
 
                     while True:
                         try:
-                            print(333)
                             res_b = await asyncio.wait_for(ws.recv(), timeout=25)
-                            print(444)
                         except (asyncio.TimeoutError, websockets.exceptions.ConnectionClosed) as e:
                             try:
                                 await ws.send('ping')
@@ -210,7 +206,11 @@ class WsAPI:
 
                         timestamp = self.get_timestamp()
                         res = self.inflate(res_b).decode('utf-8')
-                        print(timestamp + "\t" + res)
+                        await ws_queue.put({
+                            'timestamp': timestamp,
+                            'res': res
+                        })
+                        # print(timestamp + "\t" + res)
 
                         res = eval(res)
                         if 'event' in res:

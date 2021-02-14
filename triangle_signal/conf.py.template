@@ -1,0 +1,13 @@
+#####################################
+#                                   #
+#  Do not leak the file to anyone!  #
+#                                   #
+#####################################
+
+
+class Config(object):
+
+    # config your accounts
+    api_key = ''
+    secret_key = ''
+    passphrase = ''
