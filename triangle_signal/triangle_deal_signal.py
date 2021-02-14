@@ -27,7 +27,7 @@ def get_trade_info(coin_1, coin_2):
     if (coin_1, coin_2) in pairs:
         key = (coin_1, coin_2)
     else:
-        return ()
+        return ()   # 这里拿去计算会报错
 
     return pairs[key]
 
@@ -116,6 +116,7 @@ for coin_info in result:
     pair_set[coins[0]] = 1
     pair_set[coins[1]] = 1
     pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1])
+    pairs[(coins[0], coins[1])] = (0.0, 0.0, '', coins[1])
 
 # 初始化交易链
 for coin1 in pair_set.keys():
@@ -127,8 +128,8 @@ for coin1 in pair_set.keys():
                 continue
             if not ((coin1, coin3) in pairs or (coin3, coin1) in pairs):
                 continue
-            # 暂时只需要 USDT
-            if 'USDT' != coin1:
+            # 需要赚哪个币
+            if 'ETH' != coin1:
                 continue
             triangle_pairs.append((coin1, coin2, coin3))
 

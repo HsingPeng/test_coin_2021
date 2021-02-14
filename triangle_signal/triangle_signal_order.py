@@ -4,6 +4,7 @@
 """
 import sys
 import json
+import asyncio
 
 import okex.account_api as account
 import okex.futures_api as future
@@ -14,76 +15,7 @@ import okex.index_api as index
 import okex.option_api as option
 import okex.system_api as system
 import okex.information_api as information
-
-
-def get_trade_info(coin_1, coin_2):
-    """
-    :param coin_1: string
-    :param coin_2: string
-    :return: (price, size, timestamp, base_coin)
-    """
-    global pairs
-
-    if (coin_1, coin_2) in pairs:
-        key = (coin_1, coin_2)
-    elif (coin_2, coin_1) in pairs:
-        key = (coin_2, coin_1)
-    else:
-        return ()
-
-    return pairs[key]
-
-
-def set_trade_info(coin_base, coin_target, price, size, timestamp):
-    global pairs
-
-    pairs[(coin_base, coin_target)] = (
-        float(price),
-        float(size),
-        timestamp,
-        coin_base
-    )
-
-
-def deal_coin(base_coin, coin_1, coin_2, price, coin1_size):
-    # 计算交易 目标币数量 = 当前币数量 * 价格
-    # 基础币是当前币，就是买，否则是卖
-    if coin_1 == base_coin:
-        coin2_size = coin1_size / price
-    elif coin_2 == base_coin:
-        coin2_size = coin1_size * price
-    else:
-        coin2_size = 0
-
-    return coin2_size
-
-
-def calculate_pairs(timestamp):
-    global triangle_pairs
-
-    # 依次扫描每个交易链
-    for pair in triangle_pairs:
-        coin1 = pair[0]
-        coin2 = pair[1]
-        coin3 = pair[2]
-
-        info1 = get_trade_info(coin1, coin2)
-        info2 = get_trade_info(coin2, coin3)
-        info3 = get_trade_info(coin3, coin1)
-        if 0.0 == info1[0] or 0.0 == info2[0] or 0.0 == info3[0]:
-            continue
-
-        init_size = 100     # 初始币数量，就是 USDT 数量
-        coin2_size = deal_coin(info1[3], coin1, coin2, info1[0], init_size)
-        coin3_size = deal_coin(info2[3], coin2, coin3, info2[0], coin2_size)
-        final_size = deal_coin(info3[3], coin3, coin1, info3[0], coin3_size)
-
-        if final_size < 103:
-            continue
-
-        # print(init_size, info1, info2, info3, pair, coin2_size, coin3_size, final_size)
-
-        print(timestamp, coin1, coin2, coin3, final_size, sep="\t")
+import okex.ws_api as ws
 
 
 api_key = ""
@@ -128,6 +60,18 @@ for coin1 in pair_set.keys():
             triangle_pairs.append((coin1, coin2, coin3))
 
 print('start...')
+
+
+loop = asyncio.get_event_loop()
+wsAPI = ws.WsAPI()
+
+# 公共数据 不需要登录（行情，K线，交易数据，资金费率，限价范围，深度数据，标记价格等频道）
+url = 'wss://real.okex.com:8443/ws/v3'
+loop.run_until_complete(wsAPI.subscribe_without_login(url, channels))
+
+loop.close()
+
+exit()
 
 # 读取成交记录
 input_file = sys.argv[1]
