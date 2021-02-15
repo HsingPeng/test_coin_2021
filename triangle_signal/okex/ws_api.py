@@ -14,7 +14,10 @@ import datetime
 
 class WsAPI:
     def __init__(self):
-        pass
+        self.running = True
+
+    def setRunning(self, running):
+        self.running = running
 
     def get_timestamp(self):
         now = datetime.datetime.now()
@@ -282,6 +285,9 @@ class WsAPI:
                                                     timestamp = self.get_timestamp()
                                                     print(timestamp + f"send: {sub_str}")
             except Exception as e:
+                if not self.running:
+                    return
+
                 timestamp = self.get_timestamp()
                 print(timestamp + "连接断开，正在重连……")
                 print(e)
@@ -339,6 +345,9 @@ class WsAPI:
                         # print(time, res, sep="\t")
 
             except Exception as e:
+                if not self.running:
+                    return
+
                 time = self.get_timestamp()
                 print(time + "连接断开，正在重连……")
                 print(e)
