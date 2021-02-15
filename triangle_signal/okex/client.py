@@ -40,7 +40,7 @@ class Client(object):
             print("url:", url)
             self.first = False
 
-        print("url:", url)
+        print('client', "url:", url)
         # print("headers:", header)
         # print("body:", body)
 
@@ -55,7 +55,7 @@ class Client(object):
         elif method == c.DELETE:
             response = await session.delete(url, headers=header, proxy=proxy)
 
-        await response.read()
+        await response.json()
         await session.close()
 
         # exception handle

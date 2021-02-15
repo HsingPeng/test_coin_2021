@@ -109,7 +109,7 @@ def calculate_pairs():
 
             print('calculate_pairs', pair, init_size, coin1_size, coin2_size, final_size, sep="\t")
 
-            if final_size < 101:
+            if final_size < 99:
                 continue
 
             bisect.insort(profit_list, (
@@ -165,9 +165,12 @@ async def get_filled_order(ws_queue, order_id):
         if not 2 == int(data['state']):
             continue
 
+        print('get_filled_order', data)
+
         filled_notional = data['filled_notional']
         filled_size = data['filled_size']
-        return filled_notional, filled_size
+        fee = data['fee']
+        return float(filled_notional), float(filled_size), float(fee)
 
 
 async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size):
@@ -183,7 +186,10 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size
     """
     # 格式化最小限额
     min_size = float(min_size)
-    size = int(float(size) / min_size) * min_size
+    if not size == '':
+        size = int(float(size) / min_size) * min_size
+
+    print('take_one_order', '交易', instrument_id, side, size, notional)
 
     # 买一单
     result = await spotAPI.take_order(
@@ -197,15 +203,17 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size
             notional=notional
         )
 
+    print('take_one_order', 'result', result)
+
     if not result['result']:
-        print('take_one_order', '交易出错', result)
+        print('take_one_order', '交易出错', result, instrument_id, side, size, notional)
         return
 
-    filled_notional, filled_size = await get_filled_order(ws_queue, result['order_id'])
+    filled_notional, filled_size, fee = await get_filled_order(ws_queue, result['order_id'])
 
-    print('take_one_order', filled_notional, filled_size, result, size)
+    print('take_one_order', filled_notional, filled_size, fee, result, size)
 
-    return filled_notional, filled_size
+    return filled_notional, filled_size, fee
 
 
 # 计算 下单
@@ -224,17 +232,27 @@ async def operate(ws_queue):
         final_size, init_size, order1, order2, order3 = profit_list[0]
 
         # 下单，等待结果
-        filled_notional = 6         # 暂时用x美元交易
-        filled_size = ''
+        size_or_notional = 6         # 暂时用x美元交易
 
         for order in [
             order1, order2, order3
         ]:
             side0, instrument_id0, notional0, size0, min_size0 = order
-            notional0 = filled_notional
-            size0 = filled_size
-            filled_notional, filled_size = \
+            # 初始值根据 buy sell 填充给不同的参数
+            if 'buy' == side0:
+                notional0 = size_or_notional
+                size0 = ''
+            else:
+                size0 = size_or_notional
+                notional0 = ''
+
+            # 下一单
+            filled_notional, filled_size, fee = \
                 await take_one_order(ws_queue, side0, instrument_id0, notional0, size0, min_size0)
+            if 'buy' == side0:
+                size_or_notional = filled_size - fee
+            else:
+                size_or_notional = filled_notional - fee
 
         exit()
 
