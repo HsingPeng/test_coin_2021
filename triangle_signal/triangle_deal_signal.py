@@ -156,11 +156,11 @@ while True:
     data = info['data'][0]
     coins = data['instrument_id'].split('-')
 
-    # 如果时间前移了，扫描交易链
+    # 如果时间前移了，扫描交易链，然后计算三角套利
     if not time_last == data['timestamp']:
         calculate_pairs(data['timestamp'])
 
-    # 把每一条数据入库，然后计算三角套利
+    # 把每一条数据入库
     set_trade_info(
         coin_base=coins[1],
         coin_target=coins[0],

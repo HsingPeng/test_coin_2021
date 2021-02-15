@@ -301,14 +301,14 @@ class WsAPI:
                     res_b = await ws.recv()
                     res = self.inflate(res_b).decode('utf-8')
                     time = self.get_timestamp()
-                    print(time + res)
+                    # print(time + res)
 
                     # subscribe
                     sub_param = {"op": "subscribe", "args": channels}
                     sub_str = json.dumps(sub_param)
                     await ws.send(sub_str)
                     time = self.get_timestamp()
-                    print(time + f"send: {sub_str}")
+                    # print(time + f"send: {sub_str}")
 
                     while True:
                         try:
