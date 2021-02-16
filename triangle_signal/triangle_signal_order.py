@@ -6,6 +6,7 @@ import sys
 import json
 import asyncio
 import bisect
+import logging
 
 import okex.account_api as account
 import okex.futures_api as future
@@ -24,7 +25,7 @@ def get_trade_info(coin_1, coin_2):
     """
     :param coin_1: string
     :param coin_2: string
-    :return: (price, size, timestamp, base_coin, target_coin, min_size)
+    :return: (price, size, timestamp, base_coin, target_coin, min_size, tick_size)
     """
     global pairs
 
@@ -39,6 +40,21 @@ def get_trade_info(coin_1, coin_2):
 def set_trade_info(coin_base, coin_target, best_ask, best_bid, best_ask_size, best_bid_size, timestamp):
     global pairs
 
+    min_size = pairs[(coin_base, coin_target)][5]
+
+    # print('set_trade_info', coin_base, coin_target, best_ask, best_bid, best_ask_size, best_bid_size, timestamp, min_size, tick_size)
+
+    # 去掉最小交易量大于 10 usdt 的
+    if 'USDT' == coin_base and (float(min_size) * float(best_bid)) > 10.0:
+        best_ask = 0.0
+        best_bid = 0.0
+    elif 'BTC' == coin_base and (float(min_size) * float(best_bid)) > 0.0001:
+        best_ask = 0.0
+        best_bid = 0.0
+    elif 'ETH' == coin_base and (float(min_size) * float(best_bid)) > 0.001:
+        best_ask = 0.0
+        best_bid = 0.0
+
     # 买操作，看的是卖一 best_ask
     pairs[(coin_base, coin_target)] = (
         float(best_ask),
@@ -46,7 +62,8 @@ def set_trade_info(coin_base, coin_target, best_ask, best_bid, best_ask_size, be
         timestamp,
         coin_base,
         coin_target,
-        pairs[(coin_base, coin_target)][5]
+        min_size,
+        pairs[(coin_base, coin_target)][6]
     )
 
     # 卖操作
@@ -56,11 +73,12 @@ def set_trade_info(coin_base, coin_target, best_ask, best_bid, best_ask_size, be
         timestamp,
         coin_base,
         coin_target,
-        pairs[(coin_target, coin_base)][5]
+        min_size,
+        pairs[(coin_target, coin_base)][6]
     )
 
 
-def deal_coin(base_coin, coin_1, coin_2, price, coin1_size):
+def deal_coin(base_coin, coin_1, coin_2, price, coin1_size, best_size):
     # 计算交易 目标币数量 = 当前币数量 * 价格
     # 基础币是当前币，就是买，否则是卖
     if coin_1 == base_coin:
@@ -82,6 +100,9 @@ def deal_coin(base_coin, coin_1, coin_2, price, coin1_size):
         notional = ''
         size = ''
 
+    if best_size < coin1_size:
+        coin2_size = 0
+
     return coin2_size, side, instrument_id, notional, size
 
 
@@ -90,37 +111,37 @@ def calculate_pairs():
 
     profit_list = []
 
-    try:
-        # 依次扫描每个交易链
-        for pair in triangle_pairs:
-            coin1, coin2, coin3 = pair
+    # 依次扫描每个交易链
+    for pair in triangle_pairs:
+        coin1, coin2, coin3 = pair
 
-            price1, size1, timestamp1, base_coin1, target_coin1, min_size1 = get_trade_info(coin1, coin2)
-            price2, size2, timestamp2, base_coin2, target_coin2, min_size2 = get_trade_info(coin2, coin3)
-            price3, size3, timestamp3, base_coin3, target_coin3, min_size3 = get_trade_info(coin3, coin1)
+        price1, size1, timestamp1, base_coin1, target_coin1, min_size1, tick_size1 = get_trade_info(coin1, coin2)
+        price2, size2, timestamp2, base_coin2, target_coin2, min_size2, tick_size2 = get_trade_info(coin2, coin3)
+        price3, size3, timestamp3, base_coin3, target_coin3, min_size3, tick_size3 = get_trade_info(coin3, coin1)
 
-            if 0.0 == price1 or 0.0 == price2 or 0.0 == price3:
-                continue
+        if 0.0 == price1 or 0.0 == price2 or 0.0 == price3:
+            continue
 
-            init_size = 100     # 初始币数量，就是 USDT 数量
-            coin1_size, side1, instrument_id1, notional1, size1 = deal_coin(base_coin1, coin1, coin2, price1, init_size)
-            coin2_size, side2, instrument_id2, notional2, size2 = deal_coin(base_coin2, coin2, coin3, price2, coin1_size)
-            final_size, side3, instrument_id3, notional3, size3 = deal_coin(base_coin3, coin3, coin1, price3, coin2_size)
+        init_size = 1.0  # 初始币数量，就是 USDT 数量，如果挂单数量不满足，就放弃
+        coin1_size, side1, instrument_id1, notional1, size1 \
+            = deal_coin(base_coin1, coin1, coin2, price1, init_size, size1)
+        coin2_size, side2, instrument_id2, notional2, size2 \
+            = deal_coin(base_coin2, coin2, coin3, price2, coin1_size, size2)
+        final_size, side3, instrument_id3, notional3, size3 \
+            = deal_coin(base_coin3, coin3, coin1, price3, coin2_size, size3)
 
-            print('calculate_pairs', pair, init_size, coin1_size, coin2_size, final_size, sep="\t")
+        # print('calculate_pairs', pair, init_size, coin1_size, coin2_size, final_size, sep="\t")
 
-            if final_size < 99:
-                continue
+        if final_size < 1.01:
+            continue
 
-            bisect.insort(profit_list, (
-                final_size,
-                init_size,
-                (side1, instrument_id1, notional1, size1, min_size1),
-                (side2, instrument_id2, notional2, size2, min_size2),
-                (side3, instrument_id3, notional3, size3, min_size3)
-            ))
-    except Exception as e:
-        print(e)
+        bisect.insort(profit_list, (
+            final_size,
+            init_size,
+            (side1, instrument_id1, notional1, size1, min_size1, tick_size1),
+            (side2, instrument_id2, notional2, size2, min_size2, tick_size2),
+            (side3, instrument_id3, notional3, size3, min_size3, tick_size3)
+        ))
 
     profit_list.reverse()
     return profit_list
@@ -159,21 +180,29 @@ async def get_filled_order(ws_queue, order_id):
             continue
         if not 'spot/order' == response['res']['table']:
             continue
+
+        logging.debug('get_filled_order', response)
+
         data = response['res']['data'][0]
         if not order_id == data['order_id']:
             continue
+        if -1 == int(data['state']):
+            logging.error('订单错误', response)
+            exit()
         if not 2 == int(data['state']):
             continue
-
-        print('get_filled_order', data)
 
         filled_notional = data['filled_notional']
         filled_size = data['filled_size']
         fee = data['fee']
+
+        if '' == fee:
+            fee = 0
+
         return float(filled_notional), float(filled_size), float(fee)
 
 
-async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size):
+async def take_one_order(ws_queue, side, instrument_id, notional, size, tick_size):
     """
     下单并且等待订单成交
     :param ws_queue:
@@ -181,17 +210,16 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size
     :param instrument_id:
     :param notional:
     :param size:
-    :param min_size:
+    :param tick_size:
     :return:
     """
     # 格式化最小限额
-    min_size = float(min_size)
     if not size == '':
-        size = int(float(size) / min_size) * min_size
+        size = int(float(size) / tick_size) * tick_size
 
-    print('take_one_order', '交易', instrument_id, side, size, notional)
+    logging.debug('take_one_order', '交易', instrument_id, side, tick_size, size, '-', notional)
 
-    # 买一单
+    # 下一单
     result = await spotAPI.take_order(
             instrument_id=instrument_id,
             side=side,
@@ -203,15 +231,15 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size
             notional=notional
         )
 
-    print('take_one_order', 'result', result)
+    logging.debug('take_one_order', 'result', result)
 
     if not result['result']:
-        print('take_one_order', '交易出错', result, instrument_id, side, size, notional)
+        logging.error('take_one_order', '交易出错', result, instrument_id, side, tick_size, size, '-', notional)
         return
 
     filled_notional, filled_size, fee = await get_filled_order(ws_queue, result['order_id'])
 
-    print('take_one_order', filled_notional, filled_size, fee, result, size)
+    logging.debug('take_one_order', filled_notional, filled_size, fee, result, tick_size, size)
 
     return filled_notional, filled_size, fee
 
@@ -219,7 +247,7 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, min_size
 # 计算 下单
 async def operate(ws_queue):
     while True:
-        print('operate')
+        logging.debug('operate')
         await asyncio.sleep(0.2)
 
         # 找出最佳交易对
@@ -228,16 +256,16 @@ async def operate(ws_queue):
         if len(profit_list) == 0:
             continue
 
-        print('profit_list', profit_list[0])
+        logging.info('profit_list', '一轮开始', profit_list[0])
         final_size, init_size, order1, order2, order3 = profit_list[0]
 
         # 下单，等待结果
-        size_or_notional = 6         # 暂时用x美元交易
+        size_or_notional = 10         # 暂时用x美元交易
 
         for order in [
             order1, order2, order3
         ]:
-            side0, instrument_id0, notional0, size0, min_size0 = order
+            side0, instrument_id0, notional0, size0, min_size0, tick_size0 = order
             # 初始值根据 buy sell 填充给不同的参数
             if 'buy' == side0:
                 notional0 = size_or_notional
@@ -248,17 +276,24 @@ async def operate(ws_queue):
 
             # 下一单
             filled_notional, filled_size, fee = \
-                await take_one_order(ws_queue, side0, instrument_id0, notional0, size0, min_size0)
+                await take_one_order(ws_queue, side0, instrument_id0, notional0, size0, tick_size0)
+            # fee 带符号的所以用 + fee
             if 'buy' == side0:
-                size_or_notional = filled_size - fee
+                size_or_notional = filled_size + fee
             else:
-                size_or_notional = filled_notional - fee
+                size_or_notional = filled_notional + fee
 
-        exit()
+        logging.info('operate',  '一轮结束', size_or_notional, final_size, init_size)
 
 
 loop = asyncio.get_event_loop()
 wsAPI = ws.WsAPI()
+logging.basicConfig(filename='main.log', level=logging.DEBUG,
+                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+logging.getLogger('asyncio').setLevel(logging.ERROR)
+logging.getLogger('asyncio.coroutines').setLevel(logging.ERROR)
+logging.getLogger('websockets.server').setLevel(logging.ERROR)
+logging.getLogger('websockets.protocol').setLevel(logging.ERROR)
 
 url = 'wss://real.okex.com:8443/ws/v3'
 
@@ -270,7 +305,7 @@ passphrase = conf.Config.passphrase
 # 拿到所有交易对
 spotAPI = spot.SpotAPI(api_key, secret_key, passphrase, False)
 result = loop.run_until_complete(spotAPI.get_coin_info())
-print(json.dumps(result))
+logging.debug(json.dumps(result))
 
 trade_channels = []                                # channels = ["spot/trade:BTC-USDT"]
 order_channels = []                                # channels = ["spot/order:BTC-USDT"]
@@ -283,13 +318,16 @@ order_queue = asyncio.Queue(100)                # 用于接收订阅数据
 # 初始化币对
 for coin_info in result:
     instrument_id = coin_info['instrument_id']      # BTC-USDT
-    min_size = coin_info['min_size']
+    size_increment = coin_info['size_increment']      # 卖交易货币数量精度
+    tick_size = coin_info['tick_size']              # 买使用最小交易价格精度
+    min_size = coin_info['min_size']                # 最小交易数量
     coins = instrument_id.split('-')
 
     pair_set[coins[0]] = 1
     pair_set[coins[1]] = 1
-    pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1], coins[0], min_size)
-    pairs[(coins[0], coins[1])] = (0.0, 0.0, '', coins[1], coins[0], min_size)
+    pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1], coins[0], float(min_size), float(tick_size))
+    pairs[(coins[0], coins[1])] = (0.0, 0.0, '', coins[1], coins[0], float(min_size), float(size_increment))
+
     trade_channels.append('spot/ticker:' + instrument_id)
     order_channels.append('spot/order:' + instrument_id)
 
@@ -308,7 +346,7 @@ for coin1 in pair_set.keys():
                 continue
             triangle_pairs.append((coin1, coin2, coin3))
 
-print('start...')
+logging.info('start...')
 
 
 tasks = [
@@ -324,7 +362,7 @@ tasks = [
 finished, pending = loop.run_until_complete(asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION))
 for task in finished:
     if task.exception():
-        print("{} got an exception {}, retrying" . format(task, task.exception()))
+        logging.warning("{} got an exception {}, retrying" . format(task, task.exception()))
 
 wsAPI.setRunning(False)
 loop.close()

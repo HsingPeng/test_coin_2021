@@ -42,7 +42,7 @@ class Client(object):
 
         print('client', "url:", url)
         # print("headers:", header)
-        # print("body:", body)
+        print("body:", body)
 
         # send request
         response = None
