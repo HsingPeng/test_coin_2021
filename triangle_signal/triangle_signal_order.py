@@ -181,13 +181,13 @@ async def get_filled_order(ws_queue, order_id):
         if not 'spot/order' == response['res']['table']:
             continue
 
-        logging.debug('get_filled_order', response)
+        logging.debug('get_filled_order ' + json.dumps(response))
 
         data = response['res']['data'][0]
         if not order_id == data['order_id']:
             continue
         if -1 == int(data['state']):
-            logging.error('订单错误', response)
+            logging.error('订单错误 ' + json.dumps(response))
             exit()
         if not 2 == int(data['state']):
             continue
@@ -217,7 +217,7 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, tick_siz
     if not size == '':
         size = int(float(size) / tick_size) * tick_size
 
-    logging.debug('take_one_order', '交易', instrument_id, side, tick_size, size, '-', notional)
+    logging.debug('take_one_order ' + '交易' + json.dumps((instrument_id, side, tick_size, size, '-', notional)))
 
     # 下一单
     result = await spotAPI.take_order(
@@ -231,15 +231,16 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, tick_siz
             notional=notional
         )
 
-    logging.debug('take_one_order', 'result', result)
+    logging.debug(('take_one_order' + ' result' . format(result)))
 
     if not result['result']:
-        logging.error('take_one_order', '交易出错', result, instrument_id, side, tick_size, size, '-', notional)
+        logging.error(('take_one_order '
+                       + json.dumps(('交易出错', result, instrument_id, side, tick_size, size, '-', notional))))
         return
 
     filled_notional, filled_size, fee = await get_filled_order(ws_queue, result['order_id'])
 
-    logging.debug('take_one_order', filled_notional, filled_size, fee, result, tick_size, size)
+    logging.debug('take_one_order' + json.dumps((filled_notional, filled_size, fee, result, tick_size, size)))
 
     return filled_notional, filled_size, fee
 
@@ -247,7 +248,7 @@ async def take_one_order(ws_queue, side, instrument_id, notional, size, tick_siz
 # 计算 下单
 async def operate(ws_queue):
     while True:
-        logging.debug('operate')
+        logging.debug('operate' + json.dumps(()))
         await asyncio.sleep(0.2)
 
         # 找出最佳交易对
@@ -256,7 +257,7 @@ async def operate(ws_queue):
         if len(profit_list) == 0:
             continue
 
-        logging.info('profit_list', '一轮开始', profit_list[0])
+        logging.info('profit_list' + json.dumps(('一轮开始', profit_list[0])))
         final_size, init_size, order1, order2, order3 = profit_list[0]
 
         # 下单，等待结果
@@ -283,7 +284,7 @@ async def operate(ws_queue):
             else:
                 size_or_notional = filled_notional + fee
 
-        logging.info('operate',  '一轮结束', size_or_notional, final_size, init_size)
+        logging.info('operate' + json.dumps(('一轮结束', size_or_notional, final_size, init_size)))
 
 
 loop = asyncio.get_event_loop()
@@ -307,8 +308,7 @@ spotAPI = spot.SpotAPI(api_key, secret_key, passphrase, False)
 result = loop.run_until_complete(spotAPI.get_coin_info())
 logging.debug(json.dumps(result))
 
-trade_channels = []                                # channels = ["spot/trade:BTC-USDT"]
-order_channels = []                                # channels = ["spot/order:BTC-USDT"]
+channels = []                                # channels = ["spot/trade:BTC-USDT", "spot/order:BTC-USDT"]
 pair_set = {}                                # pair_set['BTC'] = 1;
 pairs = {}                                   # pairs[('USDT', 'BTC')] = (price, size, timestamp, base_coin)
 triangle_pairs = []                          # triangle_pairs[] = (base, target1, target2)
@@ -328,8 +328,8 @@ for coin_info in result:
     pairs[(coins[1], coins[0])] = (0.0, 0.0, '', coins[1], coins[0], float(min_size), float(tick_size))
     pairs[(coins[0], coins[1])] = (0.0, 0.0, '', coins[1], coins[0], float(min_size), float(size_increment))
 
-    trade_channels.append('spot/ticker:' + instrument_id)
-    order_channels.append('spot/order:' + instrument_id)
+    channels.append('spot/ticker:' + instrument_id)
+    channels.append('spot/order:' + instrument_id)
 
 # 初始化交易链
 for coin1 in pair_set.keys():
@@ -348,12 +348,11 @@ for coin1 in pair_set.keys():
 
 logging.info('start...')
 
-
 tasks = [
-    # 订阅挂单信息
-    asyncio.ensure_future(wsAPI.subscribe_without_login(url, trade_channels, ticker_queue)),
-    # 订阅订单结果
-    asyncio.ensure_future(wsAPI.subscribe(url, api_key, passphrase, secret_key, order_channels, order_queue)),
+    # 订阅最新成交记录和订单结果
+    asyncio.ensure_future(
+        wsAPI.subscribe(url, api_key, passphrase, secret_key, channels, ticker_queue, order_queue)
+    ),
     # 保存挂单信息到变量
     asyncio.ensure_future(update_ticker_info(ticker_queue)),
     # 计算 下单

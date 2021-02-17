@@ -10,6 +10,7 @@ import hmac
 import base64
 import zlib
 import datetime
+import traceback
 
 
 class WsAPI:
@@ -294,7 +295,7 @@ class WsAPI:
                 continue
 
     # subscribe channels need login
-    async def subscribe(self, url, api_key, passphrase, secret_key, channels, ws_queue):
+    async def subscribe(self, url, api_key, passphrase, secret_key, channels, ticker_queue, order_queue):
         while True:
             try:
                 async with websockets.connect(url) as ws:
@@ -318,15 +319,17 @@ class WsAPI:
 
                     while True:
                         try:
-                            res_b = await asyncio.wait_for(ws.recv(), timeout=25)
+                            res_b = await asyncio.wait_for(ws.recv(), timeout=25)       # 这里的timeout在协程里是无效的
+                            # print(1111, res_b)
                         except (asyncio.TimeoutError, websockets.exceptions.ConnectionClosed) as e:
                             try:
+                                print(2222)
                                 await ws.send('ping')
                                 res_b = await ws.recv()
                                 time = self.get_timestamp()
                                 res = self.inflate(res_b).decode('utf-8')
 
-                                print(time + res)
+                                print('subscribe', time + res)
                                 continue
                             except Exception as e:
                                 time = self.get_timestamp()
@@ -334,15 +337,28 @@ class WsAPI:
                                 print(e)
                                 break
 
+                        if res_b is None:
+                            res = dict()
+                        else:
+                            res = self.inflate(res_b).decode('utf-8')
+                            res = json.loads(res)
+
                         time = self.get_timestamp()
-                        res = self.inflate(res_b).decode('utf-8')
+                        # print('subscribe', time, res, sep="\t")
 
                         # 存入队列
-                        await ws_queue.put({
-                            'timestamp': timestamp,
-                            'res': json.loads(res)
-                        })
-                        # print(time, res, sep="\t")
+                        if 'table' not in res:
+                            continue
+                        if 'spot/ticker' == res['table']:
+                            await ticker_queue.put({
+                                'timestamp': time,
+                                'res': res
+                            })
+                        elif 'spot/order' == res['table']:
+                            await order_queue.put({
+                                'timestamp': time,
+                                'res': res
+                            })
 
             except Exception as e:
                 if not self.running:
@@ -350,7 +366,7 @@ class WsAPI:
 
                 time = self.get_timestamp()
                 print(time + "连接断开，正在重连……")
-                print(e)
+                print('e', traceback.print_exc())
                 continue
 
     # unsubscribe channels
