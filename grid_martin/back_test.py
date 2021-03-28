@@ -16,11 +16,10 @@
 
 """
 
-import pandas as pd
-from datetime import timedelta
-import numpy as np
+import pandas
+import json
 
-pd.set_option('expand_frame_repr', False) # 列太多时不换行
+pandas.set_option('expand_frame_repr', False) # 列太多时不换行
 
 # 初始配置
 symbol_config = {
@@ -28,6 +27,7 @@ symbol_config = {
     'max_diff_rate': 0.1,   # 最大破网百分比
     'total_level': 2048,        # 资金分成多少份
     'level_list': [1, 2, 4, 8, 16, 32, 64, 128, 256, 1024],
+    'fee': 0.001            # 手续费，千分之一
 }
 
 init_info = {
@@ -47,8 +47,9 @@ info = {
 }
 
 # === 由于是回测，一次读入全部数据
-source_df = pd.read_csv(
-    filepath_or_buffer='ETH-USDT2_2000.csv',
+source_df = pandas.read_csv(
+    # filepath_or_buffer='ETH-USDT2_2000.csv',
+    filepath_or_buffer='ETH-USDT2.csv',
     encoding='gbk',
     parse_dates=['candle_begin_time'],
     index_col=['candle_begin_time'],
@@ -58,9 +59,9 @@ source_df = pd.read_csv(
 
 # 遍历每条数据，只保留最近的3条数据
 max_len = 3
-df = pd.DataFrame()
+df = pandas.DataFrame()
 for candle_begin_time, row in source_df.iterrows():
-    series = pd.Series({
+    series = pandas.Series({
             'open': row['open'],
             'high': row['high'],
             'low': row['low'],
@@ -71,10 +72,20 @@ for candle_begin_time, row in source_df.iterrows():
     df = df.append(series, ignore_index=False)
     df = df.iloc[-max_len:]  # 保持最大K线数量不会超过max_len个
     # print(df)
+    print(json.dumps(info))
 
+    total_level = symbol_config['total_level']
+    level_list = symbol_config['level_list']
+    max_diff_rate = symbol_config['max_diff_rate']
+    max_order_level = symbol_config['max_order_level']
+    fee = symbol_config['fee']
     # 计算上次下单请求是否成交，计算余额
     """
+    1 先看单子能否成交
+    2 填充字段
+    info : 
     'balance_amount': 100,          # 余额
+    'balance_size': 0,           # 剩余的币数
     'diff_price': 344,            # 当前价差
     'per_order_amount': 0,          # 每次交易的金额
     'order_num': 1,                 # 已经下单的次数，0 代表没下单，1~9 代表下了几次单，一轮还没有结束
@@ -88,31 +99,43 @@ for candle_begin_time, row in source_df.iterrows():
         },
     'sell_order':{}
     """
+    low = df.iloc[-1]['low']
+    high = df.iloc[-1]['high']
+    buy_order = info['buy_order']
+    sell_order = info['sell_order']
+
+    # 买单成交
+    if buy_order is not None:
+        if low <= buy_order['order_price'] <= high:
+            order_price = buy_order['order_price']
+            order_amount = buy_order['order_amount']
+            order_size = order_amount / order_price * (1 - fee)
+            # 计算余额
+            info['balance_amount'] = info['balance_amount'] - order_amount
+            info['balance_size'] = info['balance_size'] + order_size
+            info['last_buy_price'] = order_price
+            info['last_buy_amount'] = order_amount
+            info['buy_order'] = None
+    if sell_order is not None:
+        if low <= sell_order['order_price'] <= high:
+            order_price = sell_order['order_price']
+            order_size = sell_order['order_size']
+            order_amount = order_price * order_size * (1 - fee)
+            # 计算余额
+            info['balance_amount'] = info['balance_amount'] + order_amount
+            info['balance_size'] = info['balance_size'] - order_size
+            info['sell_order'] = None
 
     # 计算信号，下单
     """
     状态
-    1 当前没有单子 order_num = 0
-    - 计算下单价格 order_price，下单金额 order_amount，提交一单。
-    - diff_price = (close * max_diff_rate) / total_level        计算价差
-    - order_price = close - diff_price   订单单价
-    - order_amount = (balance_amount / total_level) * level_list[order_num]     订单金额
-    - order(order_price, order_amount) 下买单
-    2 开一单 order_num == 1 && buy_order.length == 1
-    - 等待成交
-    3 一单成交 order_num == 1 && buy_order.length == 0
-    - 同时开获利单、下一单
-    4 同时开获利单、下一单 order_num >= 2 && buy_order.length == 1 && sell_order.length == 1
-    - 等待成交
-    5 获利单成交 order_num >= 2 && buy_order.length == 1 && sell_order.length == 0
-    - 取消下一单，本轮结束
-    6 下一单成交 order_num >= 2 && buy_order.length == 0 && sell_order.length == 1
-    - 取消当前获利单。同时开获利单、下一单
+    1 当前没有单子 -> 下一单
+    2 开一单 -> 等待成交
+    3 一单成交 -> 同时开获利单、下一单
+    4 同时开获利单、下一单 -> 等待成交
+    5 获利单成交 -> 取消下一单，本轮结束
+    6 下一单成交 -> 取消当前获利单。同时开获利单、下一单
     """
-    total_level = symbol_config['total_level']
-    level_list = symbol_config['level_list']
-    max_diff_rate = symbol_config['max_diff_rate']
-    max_order_level = symbol_config['max_order_level']
     balance_amount = info['balance_amount']
     order_num = info['order_num']
     buy_order = info['buy_order']
@@ -218,7 +241,7 @@ for candle_begin_time, row in source_df.iterrows():
 exit()
 
 # =====读入数据
-df = pd.read_csv(
+df = pandas.read_csv(
     filepath_or_buffer='ETH-USDT2_2000.csv',
     encoding='gbk',
     parse_dates=['candle_begin_time'],
@@ -237,7 +260,7 @@ df = df[df['volume'] > 0]  # 去除成交量为0的交易周期
 para_list = [[1]]
 
 # =====遍历参数
-rtn = pd.DataFrame()
+rtn = pandas.DataFrame()
 for para in para_list:
     _df = df.copy()
     # 计算交易信号
