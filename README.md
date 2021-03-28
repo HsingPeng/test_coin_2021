@@ -8,7 +8,12 @@
 - pip3 install websockets
 - pip3 install asyncio
 
-## 执行
+## 项目
+
+### 三角套利
+
+目录 triangle_signal
+
 triangle_deal_pairs.py 三角套利，可运行版本
 
 1. cp conf.py.template conf.py
@@ -16,3 +21,9 @@ triangle_deal_pairs.py 三角套利，可运行版本
 3. python3 triangle_deal_pairs.py
 
 日志在 main.log
+
+### 网格 + 马丁
+
+目录 grid_martin
+
+
