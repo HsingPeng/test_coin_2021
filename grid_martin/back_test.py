@@ -17,21 +17,57 @@
 """
 
 import pandas
+import matplotlib.pyplot as plt
 import json
+
+
+def show(df_1):
+    """
+    绘制资金曲线
+    :param df_1:DataFrame
+    :return:
+    """
+    df1 = df.iloc[-1]
+    ax1 = plt.subplot(411)
+    ax1.cla()
+    ax1.set_title(str(df1['candle_begin_time']) + ' 倍数 ' + str(df1['order_num']))
+    ax1.plot(df_1['candle_begin_time'], df_1['order_num'], 'g')
+    ax2 = plt.subplot(412)
+    ax2.cla()
+    ax2.set_title('余额 ' + str(df1['balance_amount']))
+    ax2.plot(df_1['candle_begin_time'], df_1['balance_amount'], 'b')
+    ax3 = plt.subplot(413)
+    ax3.cla()
+    ax3.set_title('余币数 ' + str(df1['balance_size']))
+    ax3.plot(df_1['candle_begin_time'], df_1['balance_size'], 'c')
+    ax4 = plt.subplot(414)
+    ax4.cla()
+    ax4.set_title('实时价格 ' + str(df1['open']))
+    ax4.plot(df_1['candle_begin_time'], df_1['open'], 'k')
+
+    plt.pause(0.0001)
+
 
 pandas.set_option('expand_frame_repr', False) # 列太多时不换行
 
+plt.figure(figsize=(10, 10))
+plt.title('BTC定投回测')
+plt.rcParams["font.family"] = 'Arial Unicode MS'
+plt.ion()
+
 # 初始配置
 symbol_config = {
-    'max_order_level': 10,  # 资金最多能下单几次，10代表剩余资金可以下10次单
-    'max_diff_rate': 0.1,   # 最大破网百分比
-    'total_level': 2048,        # 资金分成多少份
-    'level_list': [1, 2, 4, 8, 16, 32, 64, 128, 256, 1024],
+    'max_order_level': 4,  # 资金最多能下单几次，10代表剩余资金可以下10次单
+    'max_diff_rate': 0.12,   # 最大破网百分比
+    'total_level': 32,        # 资金分成多少份
+    # 'level_list': [1, 2, 4, 8, 16, 32, 64, 128, 256, 1024, 2048, 4096],
+    'level_list': [1, 4, 8, 16, 32],
+    # 'level_list': [1, 1, 2, 2, 4, 4, 8, 8, 16, 16, 32, 32],
     'fee': 0.001            # 手续费，千分之一
 }
 
 init_info = {
-    'init_balance_amount': 2048,        # 初始余额
+    'init_balance_amount': 8192,        # 初始余额
 }
 
 # 初始化数据
@@ -47,32 +83,46 @@ info = {
 }
 
 # === 由于是回测，一次读入全部数据
-source_df = pandas.read_csv(
-    # filepath_or_buffer='ETH-USDT2_2000.csv',
-    filepath_or_buffer='ETH-USDT2.csv',
-    encoding='gbk',
-    parse_dates=['candle_begin_time'],
-    index_col=['candle_begin_time'],
-)
+# file_name = 'ETH-USDT2_2000.csv'
+file_name = 'ETH-USDT3.pkl'
+source_df = pandas.read_pickle(file_name)
 
 # df.sort_values(by=['candle_begin_time'], inplace=True) # 任何原始数据读入都进行一下排序、去重，以防万一
 
 # 遍历每条数据，只保留最近的3条数据
-max_len = 3
+max_len = 288
+show_num = 0
 df = pandas.DataFrame()
 for candle_begin_time, row in source_df.iterrows():
     series = pandas.Series({
+            'candle_begin_time': candle_begin_time,
             'open': row['open'],
             'high': row['high'],
             'low': row['low'],
             'close': row['close'],
             'volume': row['volume'],
+            'balance_amount': info['balance_amount'],
+            'balance_size': info['balance_size'],
+            'order_num': info['order_num']
         }, name=candle_begin_time)
 
     df = df.append(series, ignore_index=False)
     df = df.iloc[-max_len:]  # 保持最大K线数量不会超过max_len个
-    # print(df)
-    print(json.dumps(info))
+    # print(df.iloc[-1].to_json())
+    # print(json.dumps(info))
+    df1 = df.iloc[-1]
+    """
+    print([
+        df1['candle_begin_time'],
+        df1['close'],
+        df1['balance_amount'],
+        df1['balance_size'],
+        df1['order_num']
+    ], "\t")
+    """
+    if show_num % 20 == 0:
+        show(df)
+    show_num += 1
 
     total_level = symbol_config['total_level']
     level_list = symbol_config['level_list']
@@ -104,9 +154,9 @@ for candle_begin_time, row in source_df.iterrows():
     buy_order = info['buy_order']
     sell_order = info['sell_order']
 
-    # 买单成交
+    # 买单成交，第一单简化，直接成交
     if buy_order is not None:
-        if low <= buy_order['order_price'] <= high:
+        if low <= buy_order['order_price'] or 1 == info['order_num']:
             order_price = buy_order['order_price']
             order_amount = buy_order['order_amount']
             order_size = order_amount / order_price * (1 - fee)
@@ -116,8 +166,9 @@ for candle_begin_time, row in source_df.iterrows():
             info['last_buy_price'] = order_price
             info['last_buy_amount'] = order_amount
             info['buy_order'] = None
-    if sell_order is not None:
-        if low <= sell_order['order_price'] <= high:
+    # 卖单成交，爆单简化，直接成交
+    if sell_order is not None or info['order_num'] >= max_order_level:
+        if sell_order['order_price'] <= high:
             order_price = sell_order['order_price']
             order_size = sell_order['order_size']
             order_amount = order_price * order_size * (1 - fee)
@@ -187,6 +238,7 @@ for candle_begin_time, row in source_df.iterrows():
                 'order_amount':  None,  # 下单买入的金额，买单需要
                 'state': 1  # 状态 1 下单 2 成交
             }
+            info['order_num'] = 2
         # 2 开一单 -> 等待成交
         else:
             pass
@@ -204,15 +256,25 @@ for candle_begin_time, row in source_df.iterrows():
             info['last_buy_amount'] = None
         # 6 下一单成交 -> 取消当前获利单。同时开新获利单、下一单
         elif buy_order is None and sell_order is not None:
-            order_num = order_num + 1
-            info['order_num'] = order_num
-
+            info['order_num'] = order_num + 1
             per_order_amount = info['per_order_amount']
             close = df.iloc[-1]['close']
             # 计算价差
             diff_price = info['diff_price']
             # 订单单价 低于前面价一个diff
             order_price = info['last_buy_price'] - diff_price
+            if order_num >= max_order_level:
+                # 爆了，卖掉所有单子
+                balance_size = info['balance_size']
+                order_price = info['last_buy_price']
+                info['sell_order'] = {
+                    'order_size': balance_size,  # 下单卖出的数量，卖单需要
+                    'order_price': order_price,  # 下单价格
+                    'order_amount': None,  # 下单买入的金额，买单需要
+                    'state': 1  # 状态 1 下单 2 成交
+                }
+                continue
+
             order_amount = per_order_amount * level_list[order_num]
             info['buy_order'] = {
                 'order_size': None,  # 下单卖出的数量，卖单需要
@@ -239,47 +301,3 @@ for candle_begin_time, row in source_df.iterrows():
             info['last_buy_amount'] = None
 
 exit()
-
-# =====读入数据
-df = pandas.read_csv(
-    filepath_or_buffer='ETH-USDT2_2000.csv',
-    encoding='gbk',
-    parse_dates=['candle_begin_time'],
-    index_col=['candle_begin_time'],
-)
-
-# 任何原始数据读入都进行一下排序、去重，以防万一
-df.sort_values(by=['candle_begin_time'], inplace=True)
-# df.drop_duplicates(subset=['candle_begin_time'], keep='last', inplace=True)
-# df.reset_index(inplace=True, drop=True)
-
-df.dropna(subset=['open'], inplace=True)  # 去除一天都没有交易的周期
-df = df[df['volume'] > 0]  # 去除成交量为0的交易周期
-
-# para_list = signal_simple_bolling_para_list()
-para_list = [[1]]
-
-# =====遍历参数
-rtn = pandas.DataFrame()
-for para in para_list:
-    _df = df.copy()
-    # 计算交易信号
-    _df = signal_simple_bolling(_df, para=para)
-    # 计算实际持仓
-    _df = position_for_OKEx_future(_df)
-    # 计算资金曲线
-    _df = equity_curve_for_OKEx_USDT_future_next_open(_df, slippage=slippage, c_rate=c_rate, leverage_rate=leverage_rate,
-                                                      face_value=face_value, min_margin_ratio=min_margin_ratio)
-    # 计算收益
-    r = _df.iloc[-1]['equity_curve']
-    print(para, '策略最终收益：', r)
-    rtn.loc[str(para), 'equity_curve'] = r
-
-# =====输出
-rtn.sort_values(by='equity_curve', ascending=False, inplace=True)
-print(rtn)
-
-
-
-
-
