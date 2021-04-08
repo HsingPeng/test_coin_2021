@@ -29,7 +29,7 @@ def show(df_1):
     :param df_1:DataFrame
     :return:
     """
-    df1 = df.iloc[-1]
+    df1 = df_1.iloc[-1]
     ax1 = plt.subplot(411)
     ax1.cla()
     ax1.set_title(str(df1['candle_begin_time']) + ' 倍数 ' + str(df1['order_num']))
@@ -56,6 +56,7 @@ plt.figure(figsize=(10, 10))
 plt.title('BTC定投回测')
 plt.rcParams["font.family"] = 'Arial Unicode MS'
 plt.ion()
+
 
 def calculate_one(param):
     # 初始配置
@@ -120,8 +121,8 @@ def calculate_one(param):
         # print(df.iloc[-1].to_json())
         # print(json.dumps(info))
         df1 = df.iloc[-1]
-        if show_num % 1 == 0:
-            # show(df)
+        if show_num % 10 == 0:
+            show(df)
             print([
                 title,
                 df1['candle_begin_time'],
@@ -301,6 +302,10 @@ def gen_param_list(m_list, n_list):
 
     return _para_list
 
+
+calculate_one([1, 0.005])
+
+exit()
 
 # =====并行提速
 # max_order_level 2 ~ 12
