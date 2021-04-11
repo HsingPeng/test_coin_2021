@@ -33,26 +33,28 @@ def calculate_one():
     diff_price = None
     show_num = 0
     for candle_begin_time, row in source_df.iterrows():
-        # 用 close 价格，按照 1% 回调算，类似跟踪止盈
-        if last_low_price is None:
-            last_high_price = row['close']
-            last_low_price = row['close']
-            diff_price = last_low_price * 0.005
-        elif row['close'] - last_low_price > diff_price:
-            num = int((last_high_price - last_low_price) % diff_price)
-            if num not in num_ret:
-                num_ret[num] = 0
-            num_ret[num] = num_ret[num] + 1
-            num_ret_last_time[num] = candle_begin_time
+        for i in range(30, 190, 30):
+            candle_begin_time = candle_begin_time + pandas.DateOffset(seconds=i)
+            # 用 low 价格，按照 1% 回调算，类似跟踪止盈
+            if last_low_price is None:
+                last_high_price = row['low']
+                last_low_price = row['low']
+                diff_price = last_low_price * 0.01
+            elif row['low'] - last_low_price > diff_price:
+                num = int((last_high_price - last_low_price) / diff_price)
+                if num not in num_ret:
+                    num_ret[num] = 0
+                num_ret[num] = num_ret[num] + 1
+                num_ret_last_time[num] = candle_begin_time
 
-            last_low_price = None
-            diff_price = None
-        elif last_low_price > row['close']:
-            last_low_price = row['close']
+                last_low_price = None
+                diff_price = None
+            elif last_low_price > row['low']:
+                last_low_price = row['low']
 
-        show_num += 1
-        if show_num % 10000 == 0:
-            print(candle_begin_time, num_ret, num_ret_last_time)
+            show_num += 1
+            if show_num % 10000 == 0:
+                print(candle_begin_time, row['low'], last_high_price, last_low_price, diff_price, num_ret, num_ret_last_time)
 
     print(num_ret, num_ret_last_time)
 
