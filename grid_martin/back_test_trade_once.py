@@ -95,7 +95,7 @@ def calculate_one(param):
     df = pandas.DataFrame()
     for candle_begin_time, row in source_df.iterrows():
         # 一个k线重复多次，是因为当前K线是5min，太宽了，需要细化。
-        for i in range(30, 190, 30):
+        for i in range(30, 160, 30):
             series = pandas.Series({
                 'candle_begin_time': candle_begin_time + pandas.DateOffset(seconds=i),
                 'open': row['open'],
@@ -113,7 +113,7 @@ def calculate_one(param):
             # print(df.iloc[-1].to_json())
             # print(json.dumps(info))
             df1 = df.iloc[-1]
-            if show_num % 1000 == 0:
+            if show_num % 1 == 0:
                 # show(df)
                 print([
                     title,
@@ -127,8 +127,8 @@ def calculate_one(param):
             show_num += 1
 
             # 方便debug
-            if str(df1['candle_begin_time']) == '2017-08-17 04:05:30':
-                print('aaaa')
+            # if str(df1['candle_begin_time']) == '2017-08-17 04:05:30':
+            #    print('aaaa')
 
             total_level = symbol_config['total_level']
             diff_rate = symbol_config['diff_rate']
@@ -279,13 +279,12 @@ def gen_param_list(m_list, n_list):
     return _para_list
 
 
-calculate_one([1, 0.02])
-
-exit()
+# calculate_one([1, 0.02])
 
 # =====并行提速
 # max_order_level 2 ~ 12
 # max_diff_rate 0.05 ~ 0.4 步进 0.02
-para_list = gen_param_list(range(2, 13, 1), [i / 100 for i in list(range(5, 41, 2))])
+# para_list = gen_param_list(range(0, 4, 1), [i / 1000 for i in list(range(40, 400, 20))])
+para_list = gen_param_list(range(0, 4, 1), [0.004, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04])
 with Pool(processes=8) as pool:  # or whatever your hardware can support
     pool.map(calculate_one, para_list)
