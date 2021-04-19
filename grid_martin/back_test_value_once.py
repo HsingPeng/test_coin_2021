@@ -15,6 +15,12 @@ file_name = 'once/ret/1_0007_value'
 file_name = 'once/ret/1_0005_value'
 file_name = 'once/ret/1_002_value'
 file_name = 'once/ret/2_001_value'
+file_name = 'once/ret/2_003_value'
+file_name = 'once/ret/3_001_value'
+file_name = 'once/ret/3_003_value'
+file_name = 'once/ret/2_004_value'
+file_name = 'once/ret/3_004_value'
+file_name = 'once/ret/1_004_value'
 
 df = pandas.read_csv(
     filepath_or_buffer=file_name,

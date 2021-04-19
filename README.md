@@ -7,6 +7,7 @@
 - pip3 install requests
 - pip3 install websockets
 - pip3 install asyncio
+- pip install pysocks
 
 ## 项目
 
