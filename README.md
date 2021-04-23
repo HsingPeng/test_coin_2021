@@ -7,7 +7,11 @@
 - pip3 install requests
 - pip3 install websockets
 - pip3 install asyncio
-- pip install pysocks
+- pip3 install pysocks
+- pip3 install pandas
+- pip3 install matplotlib
+
+国内安装依赖比较慢，换源教程：https://www.jianshu.com/p/142bb83746e5
 
 ## 项目
 
