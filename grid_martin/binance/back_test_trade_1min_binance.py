@@ -66,6 +66,8 @@ def calculate_one(param):
 
     title = 'param_' + str(sell_level) + '_' + str(diff_rate)
     print('start ' + title)
+    # 打开文件
+    f = open('ret/' + title, 'w')
 
     init_info = {
         'init_balance_amount': 1000,  # 初始余额
@@ -116,16 +118,16 @@ def calculate_one(param):
         df1 = df.iloc[-1]
         if show_num % 1 == 0:
             # show(df)
-            print(
+            line = "\t".join([
                 title,
                 df1['candle_begin_time'],
                 df1['close'],
                 df1['balance_amount'],
                 df1['balance_size'],
                 df1['order_num'],
-                json.dumps(info),
-                sep="\t"
-            )
+                json.dumps(info)
+            ])
+            f.write(line + "\n")
         show_num += 1
 
         # 方便debug
@@ -264,6 +266,7 @@ def calculate_one(param):
             }
 
     print('finish ' + title)
+    f.close()
 
 
 def gen_param_list(m_list, n_list):
