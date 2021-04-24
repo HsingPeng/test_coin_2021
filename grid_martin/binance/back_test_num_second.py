@@ -18,7 +18,7 @@ def calculate_one(para):
     source_df = pandas.read_pickle(file_name)
 
     # 打开文件
-    f = open('ret_num/' + para, 'w')
+    f = open('ret_num/%s' % para, 'w')
 
     # 遍历每条数据
     """
