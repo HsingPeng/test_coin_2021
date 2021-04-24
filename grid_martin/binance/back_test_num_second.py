@@ -78,5 +78,5 @@ def calculate_one(para):
 # calculate_one()
 
 para_list = range(1, 30, 1)
-with Pool(processes=8) as pool:  # or whatever your hardware can support
+with Pool(processes=16) as pool:  # or whatever your hardware can support
     pool.map(calculate_one, para_list)
