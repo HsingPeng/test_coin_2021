@@ -56,7 +56,7 @@ def calculate_one(param):
     sell_level = param[0]     # 0 ~ 10
     diff_rate = param[1]      # 0.03 ~ 0.4 步进 0.02
 
-    total_level = 3
+    total_level = 5
     symbol_config = {
         'sell_level': sell_level,  # 抗几次单就卖掉
         'diff_rate': diff_rate,  # 一个单位间隔的百分比
@@ -291,6 +291,7 @@ def gen_param_list(m_list, n_list):
 # max_order_level 2 ~ 12
 # max_diff_rate 0.05 ~ 0.4 步进 0.02
 # para_list = gen_param_list(range(0, 4, 1), [i / 1000 for i in list(range(40, 400, 20))])
+# para_list = gen_param_list(range(0, 4, 1), [0.004, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04])
 para_list = gen_param_list(range(0, 4, 1), [0.004, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04])
 with Pool(processes=16) as pool:  # or whatever your hardware can support
     pool.map(calculate_one, para_list)
