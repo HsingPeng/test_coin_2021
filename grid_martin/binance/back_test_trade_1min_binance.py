@@ -120,11 +120,11 @@ def calculate_one(param):
             # show(df)
             line = "\t".join([
                 title,
-                df1['candle_begin_time'],
-                df1['close'],
-                df1['balance_amount'],
-                df1['balance_size'],
-                df1['order_num'],
+                str(df1['candle_begin_time']),
+                str(df1['close']),
+                str(df1['balance_amount']),
+                str(df1['balance_size']),
+                str(df1['order_num']),
                 json.dumps(info)
             ])
             f.write(line + "\n")
