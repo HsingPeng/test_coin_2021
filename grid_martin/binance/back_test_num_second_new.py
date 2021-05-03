@@ -1,5 +1,6 @@
 """
-网格 + 马丁 计算各个下跌倍数的出现次数
+按不抗单的策略，回测。
+下跌1倍和上涨1倍的次数。
 """
 
 import pandas
@@ -31,50 +32,48 @@ def calculate_one(para):
     }
     """
     num_ret = {}
-    num_ret_last_time = {}
     # diff = 0.01
     diff = para / 1000
-    last_high_price = None
     last_low_price = None
     diff_price = None
     show_num = 0
     for candle_begin_time, row in source_df.iterrows():
         # 用 low 价格，按照 1% 回调算，类似跟踪止盈
-        if last_low_price is None:
-            last_high_price = row['price']
+        if last_low_price is None:  # 上个价格是空的，需要初始化
             last_low_price = row['price']
             diff_price = last_low_price * diff
-        elif row['price'] - last_low_price > diff_price:
-            num = int((last_high_price - last_low_price) / diff_price)
-            if num not in num_ret:
-                num_ret[num] = 0
-            num_ret[num] = num_ret[num] + 1
-            num_ret_last_time[num] = candle_begin_time
+        elif row['price'] - last_low_price > diff_price:        # 涨了
+            if 0 not in num_ret:
+                num_ret[0] = 0
+            num_ret[0] += 1
 
-            last_low_price = None
-            diff_price = None
-        elif last_low_price > row['price']:
             last_low_price = row['price']
+            diff_price = last_low_price * diff
+        elif last_low_price - row['price'] > diff_price:         # 跌了
+            if -1 not in num_ret:
+                num_ret[-1] = 0
+            num_ret[-1] += 1
+            last_low_price = row['price']
+            diff_price = last_low_price * diff
 
         show_num += 1
-        if show_num % 10000 == 0:
-            # print(candle_begin_time, row['price'], last_high_price, last_low_price, diff_price, num_ret,
-            #      num_ret_last_time)
+        if show_num % 1 == 0:
+            # print(candle_begin_time, row['price'], last_low_price, diff_price, num_ret)
             line = "\t".join([
                 str(candle_begin_time),
                 str(row['price']),
-                str(last_high_price),
                 str(last_low_price),
                 str(diff_price),
                 str(num_ret)
             ])
             f.write(line + "\n")
 
-    print(num_ret, num_ret_last_time)
+    print(num_ret)
     f.close()
 
 
-# calculate_one()
+calculate_one(1)
+exit()
 
 para_list = range(1, 30, 1)
 with Pool(processes=16) as pool:  # or whatever your hardware can support
