@@ -34,14 +34,20 @@ print(json.dumps(orders))
 # 返回样例： [{"info": {"symbol": "EOSUSDT", "orderId": 1859590751, "orderListId": -1, "clientOrderId": "ajw9P2eduRqaToZiDQfw06", "price": "6.35070000", "origQty": "1.60000000", "executedQty": "0.00000000", "cummulativeQuoteQty": "0.00000000", "status": "CANCELED", "timeInForce": "GTC", "type": "LIMIT", "side": "BUY", "stopPrice": "0.00000000", "icebergQty": "0.00000000", "time": 1619886632900, "updateTime": 1619886654292, "isWorking": true, "origQuoteOrderQty": "0.00000000"}, "id": "1859590751", "clientOrderId": "ajw9P2eduRqaToZiDQfw06", "timestamp": 1619886632900, "datetime": "2021-05-01T16:30:32.900Z", "lastTradeTimestamp": null, "symbol": "EOS/USDT", "type": "limit", "timeInForce": "GTC", "postOnly": false, "side": "buy", "price": 6.3507, "amount": 1.6, "cost": 0.0, "average": null, "filled": 0.0, "remaining": 1.6, "status": "canceled", "fee": null, "trades": null}, {"info": {"symbol": "EOSUSDT", "orderId": 1859601358, "orderListId": -1, "clientOrderId": "QNojgGDTTDwlwk8jRXAKuF", "price": "6.20000000", "origQty": "1.70000000", "executedQty": "0.00000000", "cummulativeQuoteQty": "0.00000000", "status": "NEW", "timeInForce": "GTC", "type": "LIMIT", "side": "BUY", "stopPrice": "0.00000000", "icebergQty": "0.00000000", "time": 1619886807688, "updateTime": 1619886807688, "isWorking": true, "origQuoteOrderQty": "0.00000000"}, "id": "1859601358", "clientOrderId": "QNojgGDTTDwlwk8jRXAKuF", "timestamp": 1619886807688, "datetime": "2021-05-01T16:33:27.688Z", "lastTradeTimestamp": null, "symbol": "EOS/USDT", "type": "limit", "timeInForce": "GTC", "postOnly": false, "side": "buy", "price": 6.2, "amount": 1.7, "cost": 0.0, "average": null, "filled": 0.0, "remaining": 1.7, "status": "open", "fee": null, "trades": null}, {"info": {"symbol": "EOSUSDT", "orderId": 1861378769, "orderListId": -1, "clientOrderId": "web_282616bbdb074a27978c80b7905901fa", "price": "0.00000000", "origQty": "1.50000000", "executedQty": "1.50000000", "cummulativeQuoteQty": "9.96150000", "status": "FILLED", "timeInForce": "GTC", "type": "MARKET", "side": "BUY", "stopPrice": "0.00000000", "icebergQty": "0.00000000", "time": 1619923481135, "updateTime": 1619923481135, "isWorking": true, "origQuoteOrderQty": "10.00000000"}, "id": "1861378769", "clientOrderId": "web_282616bbdb074a27978c80b7905901fa", "timestamp": 1619923481135, "datetime": "2021-05-02T02:44:41.135Z", "lastTradeTimestamp": null, "symbol": "EOS/USDT", "type": "market", "timeInForce": "GTC", "postOnly": false, "side": "buy", "price": 6.640999999999999, "amount": 1.5, "cost": 9.9615, "average": 6.640999999999999, "filled": 1.5, "remaining": 0.0, "status": "closed", "fee": null, "trades": null}]
 """
 
-"""
-id = '1859601358'
-symbol = 'EOS/USDT'
-ret = exchange.cancel_order(id, symbol)
-print(json.dumps(ret))
+
+try:
+    id = '1859601358'
+    symbol = 'EOS/USDT'
+    ret = exchange.cancel_order(id, symbol)
+    print(json.dumps(ret))
+except ccxt.errors.OrderNotFound as e:
+    print('errors:' + str(e))
+except Exception as e:
+    print(e)
+
 # 返回样例： {"info": {"symbol": "EOSUSDT", "origClientOrderId": "QNojgGDTTDwlwk8jRXAKuF", "orderId": 1859601358, "orderListId": -1, "clientOrderId": "xihQQoBIFVNKCBHfIt4pTb", "price": "6.20000000", "origQty": "1.70000000", "executedQty": "0.00000000", "cummulativeQuoteQty": "0.00000000", "status": "CANCELED", "timeInForce": "GTC", "type": "LIMIT", "side": "BUY"}, "id": "1859601358", "clientOrderId": "xihQQoBIFVNKCBHfIt4pTb", "timestamp": null, "datetime": null, "lastTradeTimestamp": null, "symbol": "EOS/USDT", "type": "limit", "timeInForce": "GTC", "postOnly": false, "side": "buy", "price": 6.2, "amount": 1.7, "cost": 0.0, "average": null, "filled": 0.0, "remaining": 1.7, "status": "canceled", "fee": null, "trades": null}
 # id 不存在会返回错误 ccxt.base.errors.OrderNotFound: binance {"code":-2011,"msg":"Unknown order sent."}
-"""
+
 
 """
 symbol = 'EOS/USDT'

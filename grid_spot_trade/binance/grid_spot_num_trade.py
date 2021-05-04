@@ -141,6 +141,8 @@ while True:
                 while True:
                     try:
                         exchange.cancel_order(sell_order_info['id'], symbol)
+                    except ccxt.errors.OrderNotFound as e:
+                        break
                     except Exception as e:
                         logging.debug('[exchange retry]%s' % e)
                         time.sleep(0.5)
@@ -175,6 +177,8 @@ while True:
                 while True:
                     try:
                         exchange.cancel_order(buy_order_info['id'], symbol)
+                    except ccxt.errors.OrderNotFound as e:
+                        break
                     except Exception as e:
                         logging.debug('[exchange retry]%s' % e)
                         time.sleep(0.5)
