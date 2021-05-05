@@ -82,10 +82,10 @@ class ExchangeTest:
         return self.current_str_time
 
     def next_data(self):
-        for datetime, row in self.source_df.iterrows():
-            datetime = datetime.to_pydatetime()
-            self.current_time = (datetime - datetime.fromtimestamp(0)).total_seconds()
-            self.current_str_time = str(datetime)
+        for dtime, row in self.source_df.iterrows():
+            dtime = dtime.to_pydatetime()
+            self.current_time = (dtime - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+            self.current_str_time = str(dtime)
 
             # 判断单子是否成交
             for i in range(len(self.orders[self.symbol])):
@@ -124,7 +124,7 @@ class ExchangeTest:
                     self.balance[target]['free'] += amount * (1 - self.fee)     # 模拟扣费
                     self.balance[target]['total'] += amount * (1 - self.fee)     # 模拟扣费
 
-            yield datetime, row
+            yield dtime, row
 
     def load_data(self, pklname, symbol: str, base_amount, target_amount):
         """
@@ -155,7 +155,7 @@ class ExchangeTest:
         }
 
     def fetch_ticker(self, symbol, params=None):
-        datetime, row = next(self.source_row)
+        dtime, row = next(self.source_row)
 
         return {
             "symbol": symbol,
