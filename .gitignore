@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+.DS_Store
 conf.py
 /trade_frame/data/*
 /trade_frame/log/*
-/trade_frame/param/
+/trade_frame/param/*
 
