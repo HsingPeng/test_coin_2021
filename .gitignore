@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 
 conf.py
+/trade_frame/data/*
+/trade_frame/log/*
+/trade_frame/param/
+

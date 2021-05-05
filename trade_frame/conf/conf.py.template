@@ -1,0 +1,14 @@
+#####################################
+#                                   #
+#  Do not leak the file to anyone!  #
+#                                   #
+#####################################
+
+
+class Config(object):
+    # 代理设置 {"http": "socks5h://127.0.0.1:1086", "https": "socks5h://127.0.0.1:1086"}
+    proxies = None
+
+    # config your accounts
+    binance_api_key = ''
+    binance_secret_key = ''
