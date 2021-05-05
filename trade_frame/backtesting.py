@@ -127,3 +127,5 @@ if __name__ == "__main__":
     else:
         print(usage)
         exit(1)
+
+    print('finish')
