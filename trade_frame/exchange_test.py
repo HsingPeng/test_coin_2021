@@ -83,8 +83,9 @@ class ExchangeTest:
 
     def next_data(self):
         for dtime, row in self.source_df.iterrows():
-            dtime = dtime.to_pydatetime()
-            self.current_time = (dtime - datetime.datetime.fromtimestamp(0, datetime.timezone.utc)).total_seconds()
+            dtime: datetime.datetime = dtime.to_pydatetime()
+            dtime.replace(tzinfo=None)
+            self.current_time = (dtime - datetime.datetime.fromtimestamp(0, tz=None)).total_seconds()
             self.current_str_time = str(dtime)
 
             # 判断单子是否成交

@@ -7,6 +7,9 @@
 import sys
 import controller
 import pandas
+import importlib
+from multiprocessing.pool import Pool
+import json
 
 
 class BackTesting:
@@ -99,12 +102,19 @@ class BackTesting:
         source_df.to_pickle(pkl_name)  # 格式另存
 
 
+def multi_test(params):
+    symbol_params, _strategy_name, _strategy_params = params
+    print(symbol_params, _strategy_name, _strategy_params)
+    BackTesting().test(symbol_params, _strategy_name, _strategy_params)
+
+
 if __name__ == "__main__":
     usage = 'usage:python3 backtesting.py [getdata|test|csv2pkl] symbol-starttime-endtime [strategy_name params]' \
             + "\n example:python3 backtesting.py getdata ETH-USDT-1620132107000-1620142907000" \
             + "\n example:python3 backtesting.py csv2pkl ETH-USDT-1620132107000-1620142907000" \
             + "\n example:python3 backtesting.py test ETH-USDT-1620132107000-1620142907000 " \
-              "spot_neutral_1.SpotNeutral1 0.0009-ETH-USDT-11"
+              "spot_neutral_1.SpotNeutral1 0.0009-ETH-USDT-11" \
+            + "\npython3 backtesting.py multitest ETH-USDT_spot_neutral_1 8"
     if 3 > len(sys.argv):
         print(usage)
         exit(1)
@@ -124,6 +134,16 @@ if __name__ == "__main__":
         trading.test(params, strategy_name, strategy_params)
     elif 'csv2pkl' == sys.argv[1]:
         trading.csv_to_pkl(params)
+    elif 'multitest' == sys.argv[1]:
+        if 4 > len(sys.argv):
+            print(usage)
+            exit(1)
+
+        module = importlib.import_module('param.' + sys.argv[2])
+        params = module.get_para_list()
+
+        with Pool(processes=int(sys.argv[3])) as pool:  # or whatever your hardware can support
+            pool.map(multi_test, params)
     else:
         print(usage)
         exit(1)
