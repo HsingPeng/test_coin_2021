@@ -12,7 +12,8 @@ import datetime
 
 
 class Exchange:
-    def __init__(self):
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
         exchange = ccxt.binance()
 
         # 针对网络设置代理
@@ -43,7 +44,7 @@ class Exchange:
             try:
                 return self.exchange.fetch_ticker(symbol, params)
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -55,7 +56,7 @@ class Exchange:
             try:
                 return self.exchange.fetch_balance(params)
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -64,7 +65,7 @@ class Exchange:
             try:
                 return self.exchange.create_limit_sell_order(symbol, args)
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -73,7 +74,7 @@ class Exchange:
             try:
                 return self.exchange.create_limit_sell_order(symbol, args)
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -85,7 +86,7 @@ class Exchange:
             try:
                 return self.exchange.fetch_orders(symbol, since, limit, params)
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -97,10 +98,10 @@ class Exchange:
             try:
                 return self.exchange.cancel_order(id, symbol, params)
             except ccxt.errors.OrderNotFound as e:      # 订单不存在时，特殊处理
-                logging.debug('[exchange no retry]%s' % e)
+                self.logger.debug('[exchange no retry]%s' % e)
                 return {}
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 
@@ -112,10 +113,10 @@ class Exchange:
             try:
                 return self.exchange.fetch_trades(symbol, since, limit, params)
             except ccxt.errors.OrderNotFound as e:      # 订单不存在时，特殊处理
-                logging.debug('[exchange no retry]%s' % e)
+                self.logger.debug('[exchange no retry]%s' % e)
                 return {}
             except Exception as e:
-                logging.debug('[exchange retry]%s' % e)
+                self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.5)
                 continue
 

@@ -23,13 +23,14 @@ balance_coin = 当前币的数量
 """
 
 import controller
-import logging
 import json
 
 
 class SpotNeutral1:
     def exec(self, _controller: controller.Controller, params: str):
         exchange = _controller.get_exchange()
+        logger = exchange.logger
+
         diff_rate, target_coin, base_coin, per_usdt = params.split('-')
 
         # 初始化
@@ -53,7 +54,7 @@ class SpotNeutral1:
                 min_price = std_price
 
             balance_info = exchange.fetch_balance()
-            logging.info('[%s] [start one] std_price=%s, ETH=%s USDT=%s TOTAL=%s'
+            logger.info('[%s] [start one] std_price=%s, ETH=%s USDT=%s TOTAL=%s'
                          % (
                              exchange.get_str_time(),
                              std_price, balance_info['ETH']['total'],
@@ -65,14 +66,14 @@ class SpotNeutral1:
             price = std_price * (1 + diff_rate)
             amount = per_usdt / price
             sell_order_info = exchange.create_limit_sell_order(symbol, amount, price)
-            logging.debug('[%s] [create sell]amount=%s, price=%s' %
+            logger.debug('[%s] [create sell]amount=%s, price=%s' %
                           (exchange.get_str_time(), sell_order_info['amount'], sell_order_info['price']))
 
             # 开一单，买单
             price = std_price * (1 - diff_rate)
             amount = per_usdt / price
             buy_order_info = exchange.create_limit_buy_order(symbol, amount, price)
-            logging.debug('[%s] [create buy]amount=%s, price=%s' %
+            logger.debug('[%s] [create buy]amount=%s, price=%s' %
                           (exchange.get_str_time(), buy_order_info['amount'], buy_order_info['price']))
 
             # 循环等待完全成交
@@ -90,7 +91,7 @@ class SpotNeutral1:
                         # 把剩余的撤单
                         exchange.cancel_order(sell_order_info['id'], symbol)
 
-                        logging.debug('[%s] [closed buy]amount=%s, price=%s' %
+                        logger.debug('[%s] [closed buy]amount=%s, price=%s' %
                                       (exchange.get_str_time(), one_order['amount'], one_order['price']))
 
                         # 循环等待回调
@@ -98,7 +99,7 @@ class SpotNeutral1:
                             ticker_info = exchange.fetch_ticker(symbol)
                             current_price = ticker_info['last']
                             min_price = min(min_price, current_price)
-                            logging.debug('[%s] [waiting finish]min_price=%s, current_price=%s' %
+                            logger.debug('[%s] [waiting finish]min_price=%s, current_price=%s' %
                                           (exchange.get_str_time(), min_price, current_price))
                             if (current_price - min_price) > (std_price * diff_rate):  # 代表回调了一个diff价格
                                 break
@@ -110,11 +111,11 @@ class SpotNeutral1:
                         # 把剩余的撤单
                         exchange.cancel_order(buy_order_info['id'], symbol)
 
-                        logging.debug('[%s] [closed sell]amount=%s, price=%s' %
+                        logger.debug('[%s] [closed sell]amount=%s, price=%s' %
                                       (exchange.get_str_time(), one_order['amount'], one_order['price']))
 
             balance_info = exchange.fetch_balance()
-            logging.info('[%s] [finish one] std_price=%s, ETH=%s USDT=%s TOTAL=%s' % (
+            logger.info('[%s] [finish one] std_price=%s, ETH=%s USDT=%s TOTAL=%s' % (
                 exchange.get_str_time(),
                 std_price,
                 balance_info[target_coin]['total'],

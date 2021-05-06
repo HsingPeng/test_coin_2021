@@ -6,15 +6,17 @@
 
 import ccxt
 import conf.conf
-import logging
 import time
 import datetime
 import json
 import pandas
+import logging
 
 
 class ExchangeTest:
-    def __init__(self):
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
+
         self.source_df = None           # 回测数据
         self.current_time = None        # 回测中的当前时间
         self.current_str_time = None        # 回测中的当前时间
@@ -50,7 +52,7 @@ class ExchangeTest:
             'EOS/USDT': []
         }
         self.fee = 0.00075      # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
-        self.request_delay = 0.01     # 模拟请求延迟 秒。每请求一次，时间线都往后走
+        self.request_delay = 0.1     # 模拟请求延迟 秒。每请求一次，时间线都往后走
 
     def gen_id(self) -> int:
         """
@@ -92,9 +94,14 @@ class ExchangeTest:
             self.current_str_time = str(dtime)
 
             # 判断单子是否成交
-            for i in range(len(self.orders[self.symbol])):
+            length = len(self.orders[self.symbol])
+            need_del = []
+            need_num = 10  # 目前只存最后 10 个单子，循环结束后删除
+            for i in range(length):
                 order = self.orders[self.symbol][i]
                 if 'open' != order['status']:
+                    if length > need_num:       # 记录不要的单子
+                        need_del.append(i)
                     continue
 
                 if 'sell' == order['side'] and row['price'] >= order['price']:
@@ -127,6 +134,12 @@ class ExchangeTest:
                     self.balance[base]['total'] -= cost
                     self.balance[target]['free'] += amount * (1 - self.fee)     # 模拟扣费
                     self.balance[target]['total'] += amount * (1 - self.fee)     # 模拟扣费
+
+            # 删除不要的单子
+            for i in range(length - need_num):
+                if i >= len(need_del):
+                    break
+                del(self.orders[self.symbol][need_del[i]])
 
             yield dtime, row
 
@@ -291,7 +304,8 @@ class ExchangeTest:
         for i in range(len(self.orders[symbol])):
             if id == self.orders[symbol][i]['id']:
                 if 'open' != self.orders[symbol][i]['status']:
-                    logging.debug('[exchange no retry]fake order status error. id:%s orders:%s' % (id, json.dumps(self.orders)))
+                    self.logger.debug('[exchange no retry]fake order status error. id:%s orders:%s' % (id, json.dumps(self.orders)))
+                    return None
 
                 self.orders[symbol][i]['status'] = 'canceled'
                 order = self.orders[symbol][i]

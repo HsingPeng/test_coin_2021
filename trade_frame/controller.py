@@ -15,6 +15,7 @@ import importlib
 class Controller:
     def __init__(self, logname):
         self.exchange = None
+        self.logger = None
         self.set_logging(logname)
 
     def get_exchange(self) -> exchange.Exchange:
@@ -24,7 +25,7 @@ class Controller:
         exchange_file, exchange_name = exchange_param.split('.')
         module = globals()[exchange_file]
         e = getattr(module, exchange_name)
-        self.exchange = e()
+        self.exchange = e(self.logger)
 
     def run(self, strategy_name: str, strategy_params: str):
         file_name, class_name = strategy_name.split('.')
@@ -35,12 +36,16 @@ class Controller:
     def set_logging(self, filename):
         file_handler = logging.FileHandler(filename=filename)
         stdout_handler = logging.StreamHandler(sys.stdout)
-        handlers = [
-            file_handler,
-            # stdout_handler
-        ]
-        logging.basicConfig(level=logging.INFO
-                            , format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s'
-                            , handlers=handlers)
+
+        formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+        file_handler.setFormatter(formatter)
+        stdout_handler.setFormatter(formatter)
+
+        logger = logging.getLogger('trade_frame.%s' % filename)
+        logger.setLevel(logging.DEBUG)      # 设置级别
+        logger.addHandler(file_handler)
+        # logger.addHandler(stdout_handler)
+        self.logger = logger
+
         logging.getLogger('ccxt').setLevel(logging.WARNING)
         logging.getLogger("urllib3").setLevel(logging.WARNING)
