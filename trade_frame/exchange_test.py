@@ -82,10 +82,13 @@ class ExchangeTest:
         return self.current_str_time
 
     def next_data(self):
-        for dtime, row in self.source_df.iterrows():
-            dtime: datetime.datetime = dtime.to_pydatetime()
-            dtime.replace(tzinfo=None)
-            self.current_time = (dtime - datetime.datetime.fromtimestamp(0, tz=None)).total_seconds()
+        for datetime1, row in self.source_df.iterrows():
+            dtime: datetime.datetime = datetime1.to_pydatetime()
+            dtime = dtime.replace(tzinfo=datetime.timezone.utc)
+            atime = datetime.datetime.utcfromtimestamp(0)
+            atime = atime.replace(tzinfo=datetime.timezone.utc)
+            self.current_time = (dtime - atime).total_seconds()
+
             self.current_str_time = str(dtime)
 
             # 判断单子是否成交

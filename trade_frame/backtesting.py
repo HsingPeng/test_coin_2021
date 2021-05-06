@@ -114,7 +114,7 @@ if __name__ == "__main__":
             + "\n example:python3 backtesting.py csv2pkl ETH-USDT-1620132107000-1620142907000" \
             + "\n example:python3 backtesting.py test ETH-USDT-1620132107000-1620142907000 " \
               "spot_neutral_1.SpotNeutral1 0.0009-ETH-USDT-11" \
-            + "\npython3 backtesting.py multitest ETH-USDT_spot_neutral_1 8"
+            + "\n example:python3 backtesting.py multitest ETH-USDT_spot_neutral_1 8"
     if 3 > len(sys.argv):
         print(usage)
         exit(1)
