@@ -43,23 +43,46 @@ class SpotNeutral1:
         per_usdt = float(per_usdt)
         symbol = target_coin + '/' + base_coin
         std_price = None
-        min_price = None
+        min_price = None       # 判断回调使用，每轮重置
+        init_price = None
+        init_value = None   # 初始价值
+        max_value = None    # 最高价值，用于计算回撤
+        min_value = None    # 最低价值，用于计算回撤
 
         # 开始循环
         while True:
-            # 第一次获取当前价格
-            if std_price is None:
-                ticker_info = exchange.fetch_ticker(symbol)
-                std_price = ticker_info['last']
-                min_price = std_price
+            # 每轮都重新获取当前价格
+            ticker_info = exchange.fetch_ticker(symbol)
+            std_price = ticker_info['last']
+            min_price = std_price
 
             balance_info = exchange.fetch_balance()
-            logger.info('[%s] [start one] std_price=%s, ETH=%s USDT=%s TOTAL=%s'
-                         % (
+            if init_value is None:
+                init_price = std_price
+                init_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+
+            current_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+            if min_value is None:
+                min_value = current_value
+            else:
+                min_value = min(min_value, current_value)
+            if max_value is None:
+                max_value = current_value
+            else:
+                max_value = max(max_value, current_value)
+
+            logger.info('[start one][realtime=%s] std_price=%s ETH=%s USDT=%s TOTAL_VALUE=%s '
+                        'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
+                        % (
                              exchange.get_str_time(),
-                             std_price, balance_info['ETH']['total'],
+                             std_price,
+                             balance_info['ETH']['total'],
                              balance_info['USDT']['total'],
-                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
+                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
+                             init_value,
+                             current_value,
+                             (current_value - init_value) / init_value,
+                             (max_value - min_value) / max_value,
                          ))
 
             # 开一单，卖单
@@ -79,8 +102,8 @@ class SpotNeutral1:
             # 循环等待完全成交
             not_finish = True
             while not_finish:
-                # 如果没有完成，休眠 0.5 秒
-                exchange.sleep(0.5)
+                # 如果没有完成，休眠 0.01 秒
+                exchange.sleep(0.01)
 
                 orders_info = exchange.fetch_orders(symbol)
                 for one_order in orders_info:
@@ -103,7 +126,7 @@ class SpotNeutral1:
                                           (exchange.get_str_time(), min_price, current_price))
                             if (current_price - min_price) > (std_price * diff_rate):  # 代表回调了一个diff价格
                                 break
-                            exchange.sleep(0.5)  # 轮询
+                            exchange.sleep(0.01)  # 轮询
                     if sell_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         not_finish = False
                         std_price = one_order['price']
@@ -115,10 +138,20 @@ class SpotNeutral1:
                                       (exchange.get_str_time(), one_order['amount'], one_order['price']))
 
             balance_info = exchange.fetch_balance()
-            logger.info('[%s] [finish one] std_price=%s, ETH=%s USDT=%s TOTAL=%s' % (
-                exchange.get_str_time(),
-                std_price,
-                balance_info[target_coin]['total'],
-                balance_info[base_coin]['total'],
-                balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
-            ))
+
+            current_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+            min_value = min(min_value, current_value)
+            max_value = max(max_value, current_value)
+            logger.info('[finish one][realtime=%s] std_price=%s ETH=%s USDT=%s TOTAL_VALUE=%s '
+                        'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
+                        % (
+                            exchange.get_str_time(),
+                            std_price,
+                            balance_info[target_coin]['total'],
+                            balance_info[base_coin]['total'],
+                            balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
+                            init_value,
+                            current_value,
+                            (current_value - init_value) / init_value,
+                            (max_value - min_value) / max_value,
+                        ))
