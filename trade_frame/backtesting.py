@@ -26,7 +26,7 @@ class BackTesting:
         e = c.get_exchange()
 
         # 初始金额，这种参数先写死吧，之后完善
-        base_amount = 1000
+        base_amount = 2000
         target_amount = 2
         e.load_data('data/backtesting_getdata_%s.pkl' % params, symbol, base_amount, target_amount)
 
@@ -105,7 +105,11 @@ class BackTesting:
 def multi_test(params):
     symbol_params, _strategy_name, _strategy_params = params
     print(symbol_params, _strategy_name, _strategy_params)
-    BackTesting().test(symbol_params, _strategy_name, _strategy_params)
+
+    try:
+        BackTesting().test(symbol_params, _strategy_name, _strategy_params)
+    except Exception as e:
+        print('exception:', symbol_params, _strategy_name, _strategy_params, str(e))
 
 
 if __name__ == "__main__":
