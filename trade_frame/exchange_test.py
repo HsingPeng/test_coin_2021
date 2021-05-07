@@ -104,14 +104,17 @@ class ExchangeTest:
                         need_del.append(i)
                     continue
 
-                if 'sell' == order['side'] and row['price'] >= order['price']:
+                if 'sell' == order['side'] and ('market' == order['type'] or row['price'] >= order['price']):
                     self.orders[self.symbol][i]['status'] = 'closed'
                     self.orders[self.symbol][i]['filled'] = self.orders[self.symbol][i]['amount']
                     self.orders[self.symbol][i]['remaining'] = 0
 
                     # 计算余额
                     amount = order['amount']
-                    price = order['price']
+                    if 'market' == order['type']:
+                        price = row['price']
+                    else:
+                        price = order['price']
                     target, base = order['symbol'].split('/')
                     cost = amount * price
 
@@ -119,16 +122,21 @@ class ExchangeTest:
                     self.balance[target]['total'] -= amount
                     self.balance[base]['free'] += cost * (1 - self.fee)     # 模拟扣费
                     self.balance[base]['total'] += cost * (1 - self.fee)     # 模拟扣费
-                elif 'buy' == order['side'] and row['price'] <= order['price']:
+                elif 'buy' == order['side'] and ('market' == order['type'] or row['price'] <= order['price']):
                     self.orders[self.symbol][i]['status'] = 'closed'
                     self.orders[self.symbol][i]['filled'] = self.orders[self.symbol][i]['amount']
                     self.orders[self.symbol][i]['remaining'] = 0
 
                     # 计算余额
-                    amount = order['amount']
-                    price = order['price']
+                    if 'market' == order['type']:
+                        cost = order['cost']
+                        price = row['price']
+                        amount = cost / price
+                    else:
+                        price = order['price']
+                        amount = order['amount']
+                        cost = amount * price
                     target, base = order['symbol'].split('/')
-                    cost = amount * price
 
                     self.balance[base]['used'] -= cost
                     self.balance[base]['total'] -= cost
@@ -199,6 +207,87 @@ class ExchangeTest:
 
     def fetch_balance(self, params=None):
         return self.balance
+
+    def create_market_buy_order(self, symbol, cost, params=None):
+        # 计算余额
+        target, base = symbol.split('/')
+        if self.balance[base]['free'] < cost:
+            raise Exception('insufficient coin:%s cost:%s' % (base, cost))
+
+        self.balance[base]['free'] -= cost
+        self.balance[base]['used'] += cost
+
+        id = self.gen_id()
+        order = {
+            "info": {},
+            "id": str(id),
+            "clientOrderId": "fakeClientOrderId%d" % id,
+            "timestamp": self.current_time * 1000,
+            "datetime": self.current_str_time,
+            "lastTradeTimestamp": None,
+            "symbol": symbol,
+            "type": "market",
+            "timeInForce": "GTC",
+            "postOnly": False,
+            "side": "buy",
+            "price": None,
+            "amount": None,
+            "cost": cost,
+            "average": None,
+            "filled": 0,
+            "remaining": None,
+            "status": "open",
+            "fee": None,
+            "trades": None
+        }
+        if self.orders[symbol] is None:
+            self.orders[symbol] = []
+        self.orders[symbol].append(order)
+
+        self.sleep(self.request_delay)
+
+        return order
+
+    def create_market_sell_order(self, symbol, amount, params=None):
+        # 计算余额
+        target, base = symbol.split('/')
+        if self.balance[target]['free'] < amount:
+            raise Exception('insufficient coin:%s amount:%s' % (target, amount))
+
+        self.balance[target]['free'] -= amount
+        self.balance[target]['used'] += amount
+
+        id = self.gen_id()
+        order = {
+            "info": {},
+            "id": str(id),
+            "clientOrderId": "fakeClientOrderId%d" % id,
+            "timestamp": self.current_time * 1000,
+            "datetime": self.current_str_time,
+            "lastTradeTimestamp": None,
+            "symbol": symbol,
+            "type": "market",
+            "timeInForce": "GTC",
+            "postOnly": False,
+            "side": "sell",
+            "price": None,
+            "amount": amount,
+            "cost": 0,
+            "average": None,
+            "filled": 0,
+            "remaining": amount,
+            "status": "open",
+            "fee": None,
+            "trades": None
+        }
+
+        if self.orders[symbol] is None:
+            self.orders[symbol] = []
+        self.orders[symbol].append(order)
+
+        self.sleep(self.request_delay)
+
+        return order
 
     def create_limit_sell_order(self, symbol, *args):
         amount = args[0]

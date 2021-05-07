@@ -44,7 +44,7 @@ class Controller:
         logger = logging.getLogger('trade_frame.%s' % filename)
         logger.setLevel(logging.INFO)      # 设置级别
         logger.addHandler(file_handler)
-        # logger.addHandler(stdout_handler)
+        # logger.addHandler(stdout_handler)       # 同时在命令行输出
         self.logger = logger
 
         logging.getLogger('ccxt').setLevel(logging.WARNING)

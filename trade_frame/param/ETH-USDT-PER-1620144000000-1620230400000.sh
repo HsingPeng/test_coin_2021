@@ -1,0 +1,1 @@
+python3 backtesting.py multitest ETH-USDT-PER-1620144000000-1620230400000 16

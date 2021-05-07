@@ -42,8 +42,7 @@ class SpotNeutral1:
         diff_rate = float(diff_rate)
         per_usdt = float(per_usdt)
         symbol = target_coin + '/' + base_coin
-        std_price = None
-        min_price = None       # 判断回调使用，每轮重置
+
         init_price = None
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
@@ -53,8 +52,8 @@ class SpotNeutral1:
         while True:
             # 每轮都重新获取当前价格
             ticker_info = exchange.fetch_ticker(symbol)
-            std_price = ticker_info['last']
-            min_price = std_price
+            std_price = ticker_info['last']     # 基准价格，每轮重置
+            min_price = std_price            # 判断回调使用，每轮重置
 
             balance_info = exchange.fetch_balance()
             if init_value is None:
@@ -70,6 +69,31 @@ class SpotNeutral1:
                 max_value = current_value
             else:
                 max_value = max(max_value, current_value)
+
+            # 平衡资金
+            if current_value < per_usdt * 2:
+                raise Exception('balance is not enough, something wrong happened')
+
+            balance_order_info = None
+            if balance_info['ETH']['total'] < per_usdt / std_price * 2:
+                balance_order_info = exchange.create_market_buy_order(symbol, per_usdt * 4)
+                logger.info('[balance value]buy target coin=%s cost=%s' % (target_coin, per_usdt * 4))
+            elif balance_info['USDT']['total'] < per_usdt * 2:
+                balance_order_info = exchange.create_market_sell_order(symbol, per_usdt / std_price * 4)
+                logger.info('[balance value]sell target coin=%s amount=%s' % (target_coin, per_usdt / std_price * 4))
+
+            if balance_order_info is not None:
+                # 循环等待完全成交
+                not_finish = True
+                while not_finish:
+                    # 如果没有完成，休眠 0.01 秒
+                    exchange.sleep(0.01)
+                    orders_info = exchange.fetch_orders(symbol)
+                    for one_order in orders_info:
+                        if balance_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
+                            not_finish = False
+
+                continue    # 重开一轮
 
             logger.info('[start one][realtime=%s] std_price=%s ETH=%s USDT=%s TOTAL_VALUE=%s '
                         'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'

@@ -45,7 +45,7 @@ class Exchange:
                 return self.exchange.fetch_ticker(symbol, params)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
     def fetch_balance(self, params=None):
@@ -57,7 +57,31 @@ class Exchange:
                 return self.exchange.fetch_balance(params)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
+                continue
+
+    def create_market_buy_order(self, symbol, amount, params=None):
+        if params is None:
+            params = {}
+
+        while True:
+            try:
+                self.exchange.create_market_buy_order(symbol, amount, params)
+            except Exception as e:
+                self.logger.debug('[exchange retry]%s' % e)
+                time.sleep(0.01)
+                continue
+
+    def create_market_sell_order(self, symbol, amount, params=None):
+        if params is None:
+            params = {}
+
+        while True:
+            try:
+                self.exchange.create_market_sell_order(symbol, amount, params)
+            except Exception as e:
+                self.logger.debug('[exchange retry]%s' % e)
+                time.sleep(0.01)
                 continue
 
     def create_limit_sell_order(self, symbol, *args):
@@ -66,7 +90,7 @@ class Exchange:
                 return self.exchange.create_limit_sell_order(symbol, args)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
     def create_limit_buy_order(self, symbol, *args):
@@ -75,7 +99,7 @@ class Exchange:
                 return self.exchange.create_limit_sell_order(symbol, args)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
     def fetch_orders(self, symbol=None, since=None, limit=None, params=None):
@@ -87,7 +111,7 @@ class Exchange:
                 return self.exchange.fetch_orders(symbol, since, limit, params)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
     def cancel_order(self, id, symbol=None, params=None):
@@ -102,7 +126,7 @@ class Exchange:
                 return {}
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
     def fetch_trades(self, symbol, since=None, limit=None, params=None):
@@ -117,6 +141,6 @@ class Exchange:
                 return {}
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
-                time.sleep(0.5)
+                time.sleep(0.01)
                 continue
 
