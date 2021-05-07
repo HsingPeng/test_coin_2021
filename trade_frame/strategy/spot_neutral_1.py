@@ -58,9 +58,9 @@ class SpotNeutral1:
             balance_info = exchange.fetch_balance()
             if init_value is None:
                 init_price = std_price
-                init_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
+                init_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
 
-            current_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
             if min_value is None:
                 min_value = current_value
             else:
@@ -75,12 +75,14 @@ class SpotNeutral1:
                 raise Exception('balance is not enough, something wrong happened')
 
             balance_order_info = None
-            if balance_info[target_coin]['total'] < per_usdt / std_price * 2:
-                balance_order_info = exchange.create_market_buy_order(symbol, per_usdt * 4)
-                logger.info('[balance value]buy target coin=%s cost=%s' % (target_coin, per_usdt * 4))
-            elif balance_info['USDT']['total'] < per_usdt * 2:
-                balance_order_info = exchange.create_market_sell_order(symbol, per_usdt / std_price * 4)
-                logger.info('[balance value]sell target coin=%s amount=%s' % (target_coin, per_usdt / std_price * 4))
+            if balance_info[base_coin]['total'] > per_usdt * 150:  # base coin 多于150次，立刻买入，只留100次，因为要尽量持有
+                balance_amount = balance_info[base_coin]['total'] - per_usdt * 100
+                balance_order_info = exchange.create_market_buy_order(symbol, balance_amount)
+                logger.info('[balance value]buy target coin=%s cost=%s' % (target_coin, balance_amount))
+            elif balance_info[base_coin]['total'] < per_usdt * 2:      # base coin 不足，卖一些 target coin，得到50次
+                balance_amount = per_usdt / std_price * 50
+                balance_order_info = exchange.create_market_sell_order(symbol, balance_amount)
+                logger.info('[balance value]sell target coin=%s amount=%s' % (target_coin, balance_amount))
 
             if balance_order_info is not None:
                 # 循环等待完全成交
@@ -102,7 +104,7 @@ class SpotNeutral1:
                              std_price,
                              target_coin,
                              balance_info[target_coin]['total'],
-                             balance_info['USDT']['total'],
+                             balance_info[base_coin]['total'],
                              balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
                              init_value,
                              current_value,
@@ -164,7 +166,7 @@ class SpotNeutral1:
 
             balance_info = exchange.fetch_balance()
 
-            current_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
             min_value = min(min_value, current_value)
             max_value = max(max_value, current_value)
             logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
