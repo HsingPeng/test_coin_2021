@@ -43,6 +43,7 @@ class SpotNeutral1:
         per_usdt = float(per_usdt)
         symbol = target_coin + '/' + base_coin
 
+        sleep_time = 0.1        # 睡眠时间
         init_price = None
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
@@ -93,8 +94,8 @@ class SpotNeutral1:
                 # 循环等待完全成交
                 not_finish = True
                 while not_finish:
-                    # 如果没有完成，休眠 0.01 秒
-                    exchange.sleep(0.01)
+                    # 如果没有完成，休眠
+                    exchange.sleep(sleep_time)
                     orders_info = exchange.fetch_orders(symbol)
                     for one_order in orders_info:
                         if balance_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
@@ -139,7 +140,7 @@ class SpotNeutral1:
             not_finish = True
             while not_finish:
                 # 如果没有完成，休眠 0.01 秒
-                exchange.sleep(0.01)
+                exchange.sleep(sleep_time)
 
                 orders_info = exchange.fetch_orders(symbol)
                 for one_order in orders_info:
@@ -165,7 +166,7 @@ class SpotNeutral1:
                                           (exchange.get_str_time(), min_price, current_price))
                             if (current_price - min_price) > (std_price * diff_rate):  # 代表回调了一个diff价格
                                 break
-                            exchange.sleep(0.01)  # 轮询
+                            exchange.sleep(sleep_time)  # 轮询
                     if sell_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         not_finish = False
                         std_price = one_order['price']
