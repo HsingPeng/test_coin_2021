@@ -58,9 +58,9 @@ class SpotNeutral1:
             balance_info = exchange.fetch_balance()
             if init_value is None:
                 init_price = std_price
-                init_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+                init_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
 
-            current_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
             if min_value is None:
                 min_value = current_value
             else:
@@ -75,7 +75,7 @@ class SpotNeutral1:
                 raise Exception('balance is not enough, something wrong happened')
 
             balance_order_info = None
-            if balance_info['ETH']['total'] < per_usdt / std_price * 2:
+            if balance_info[target_coin]['total'] < per_usdt / std_price * 2:
                 balance_order_info = exchange.create_market_buy_order(symbol, per_usdt * 4)
                 logger.info('[balance value]buy target coin=%s cost=%s' % (target_coin, per_usdt * 4))
             elif balance_info['USDT']['total'] < per_usdt * 2:
@@ -95,12 +95,13 @@ class SpotNeutral1:
 
                 continue    # 重开一轮
 
-            logger.info('[start one][realtime=%s] std_price=%s ETH=%s USDT=%s TOTAL_VALUE=%s '
+            logger.info('[start one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
                         'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
                         % (
                              exchange.get_str_time(),
                              std_price,
-                             balance_info['ETH']['total'],
+                             target_coin,
+                             balance_info['target_coin']['total'],
                              balance_info['USDT']['total'],
                              balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
                              init_value,
@@ -163,14 +164,15 @@ class SpotNeutral1:
 
             balance_info = exchange.fetch_balance()
 
-            current_value = balance_info['ETH']['total'] * init_price + balance_info['USDT']['total']
+            current_value = balance_info['target_coin']['total'] * init_price + balance_info['USDT']['total']
             min_value = min(min_value, current_value)
             max_value = max(max_value, current_value)
-            logger.info('[finish one][realtime=%s] std_price=%s ETH=%s USDT=%s TOTAL_VALUE=%s '
+            logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
                         'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
                         % (
                             exchange.get_str_time(),
                             std_price,
+                            target_coin,
                             balance_info[target_coin]['total'],
                             balance_info[base_coin]['total'],
                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
