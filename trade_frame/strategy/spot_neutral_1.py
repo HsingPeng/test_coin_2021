@@ -47,6 +47,10 @@ class SpotNeutral1:
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
         min_value = None    # 最低价值，用于计算回撤
+        if 'extra' == exchange.get_fee_mode():
+            extra_fee_mode = True
+        else:
+            extra_fee_mode = False
 
         # 开始循环
         while True:
@@ -60,7 +64,8 @@ class SpotNeutral1:
                 init_price = std_price
                 init_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
 
-            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total'] \
+                - exchange.get_fee_usdt()
             if min_value is None:
                 min_value = current_value
             else:
@@ -93,11 +98,13 @@ class SpotNeutral1:
                     orders_info = exchange.fetch_orders(symbol)
                     for one_order in orders_info:
                         if balance_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
+                            if extra_fee_mode:
+                                exchange.add_fee_usdt(one_order['cost'])
                             not_finish = False
 
                 continue    # 重开一轮
 
-            logger.info('[start one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
+            logger.info('[start one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s FEE_USDT=%s '
                         'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
                         % (
                              exchange.get_str_time(),
@@ -105,7 +112,9 @@ class SpotNeutral1:
                              target_coin,
                              balance_info[target_coin]['total'],
                              balance_info[base_coin]['total'],
-                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
+                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
+                             - exchange.get_fee_usdt(),
+                             exchange.get_fee_usdt(),
                              init_value,
                              current_value,
                              (current_value - init_value) / init_value,
@@ -138,6 +147,9 @@ class SpotNeutral1:
                         not_finish = False
                         std_price = one_order['price']
 
+                        if extra_fee_mode:
+                            exchange.add_fee_usdt(one_order['cost'])
+
                         # 把剩余的撤单
                         exchange.cancel_order(sell_order_info['id'], symbol)
 
@@ -166,10 +178,11 @@ class SpotNeutral1:
 
             balance_info = exchange.fetch_balance()
 
-            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info[base_coin]['total'] \
+                - exchange.get_fee_usdt()
             min_value = min(min_value, current_value)
             max_value = max(max_value, current_value)
-            logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
+            logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s FEE_USDT=%s '
                         'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
                         % (
                             exchange.get_str_time(),
@@ -177,7 +190,9 @@ class SpotNeutral1:
                             target_coin,
                             balance_info[target_coin]['total'],
                             balance_info[base_coin]['total'],
-                            balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
+                            balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
+                            - exchange.get_fee_usdt(),
+                            exchange.get_fee_usdt(),
                             init_value,
                             current_value,
                             (current_value - init_value) / init_value,

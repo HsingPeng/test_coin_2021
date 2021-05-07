@@ -52,6 +52,7 @@ class ExchangeTest:
             'EOS/USDT': []
         }
         self.fee = 0.00075      # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
+        self.fee_usdt = 0           # 费用总额
         self.request_delay = 0.1     # 模拟请求延迟 秒。每请求一次，时间线都往后走
 
     def gen_id(self) -> int:
@@ -82,6 +83,30 @@ class ExchangeTest:
 
     def get_str_time(self) -> str:
         return self.current_str_time
+
+    def get_fee_mode(self) -> str:
+        """
+        返回费用模式
+        :return: extra : bnb 等额外抵扣模式，normal: 正常扣费。
+        """
+        return 'extra'
+
+    def add_fee_usdt(self, usdt) -> float:
+        """
+        添加费用记录
+        :param usdt: 交易的等量usdt数量
+        :return:
+        """
+        self.fee_usdt += usdt * self.fee
+        return self.fee_usdt
+
+    def get_fee_usdt(self) -> float:
+        """
+        返回模拟记录的费用
+        由于bnb抵扣金额，会随着bnb价格浮动，无法准确计算策略结果，因此这里模拟记录费用
+        :return:
+        """
+        return self.fee_usdt
 
     def next_data(self):
         for datetime1, row in self.source_df.iterrows():
@@ -118,10 +143,15 @@ class ExchangeTest:
                     target, base = order['symbol'].split('/')
                     cost = amount * price
 
+                    self.orders[self.symbol][i]['price'] = price
+                    self.orders[self.symbol][i]['cost'] = cost
+
                     self.balance[target]['used'] -= amount
                     self.balance[target]['total'] -= amount
-                    self.balance[base]['free'] += cost * (1 - self.fee)     # 模拟扣费
-                    self.balance[base]['total'] += cost * (1 - self.fee)     # 模拟扣费
+                    if 'extra' != self.get_fee_mode():
+                        cost = cost * (1 - self.fee)  # 模拟扣费
+                    self.balance[base]['free'] += cost
+                    self.balance[base]['total'] += cost
                 elif 'buy' == order['side'] and ('market' == order['type'] or row['price'] <= order['price']):
                     self.orders[self.symbol][i]['status'] = 'closed'
                     self.orders[self.symbol][i]['filled'] = self.orders[self.symbol][i]['amount']
@@ -138,10 +168,16 @@ class ExchangeTest:
                         cost = amount * price
                     target, base = order['symbol'].split('/')
 
+                    self.orders[self.symbol][i]['price'] = price
+                    self.orders[self.symbol][i]['cost'] = cost
+                    self.orders[self.symbol][i]['amount'] = amount
+
                     self.balance[base]['used'] -= cost
                     self.balance[base]['total'] -= cost
-                    self.balance[target]['free'] += amount * (1 - self.fee)     # 模拟扣费
-                    self.balance[target]['total'] += amount * (1 - self.fee)     # 模拟扣费
+                    if 'extra' != self.get_fee_mode():
+                        amount = amount * (1 - self.fee)
+                    self.balance[target]['free'] += amount
+                    self.balance[target]['total'] += amount
 
             # 删除不要的单子
             for i in range(length - need_num):

@@ -26,6 +26,8 @@ class Exchange:
         exchange.password = ''  # okex在创建第三代api的时候，需要填写一个Passphrase。这个填写到这里即可
 
         self.exchange = exchange
+        self.fee = 0.00075  # binance 扣的是 bnb，这里需要手动填写上正确的费用率
+        self.fee_usdt = 0
 
     def sleep(self, second):
         time.sleep(second)
@@ -35,6 +37,30 @@ class Exchange:
 
     def load_data(self, filename, symbol, base_amount, target_amount):
         pass
+
+    def get_fee_mode(self) -> str:
+        """
+        返回费用模式
+        :return: extra : bnb 等额外抵扣模式，normal: 正常扣费。
+        """
+        return 'extra'
+
+    def add_fee_usdt(self, usdt) -> float:
+        """
+        添加费用记录
+        :param usdt: 交易的等量usdt数量
+        :return:
+        """
+        self.fee_usdt += usdt * self.fee
+        return self.fee_usdt
+
+    def get_fee_usdt(self) -> float:
+        """
+        返回模拟记录的费用
+        由于bnb抵扣金额，会随着bnb价格浮动，无法准确计算策略结果，因此这里模拟记录费用
+        :return:
+        """
+        return self.fee_usdt
 
     def fetch_ticker(self, symbol, params=None):
         if params is None:
