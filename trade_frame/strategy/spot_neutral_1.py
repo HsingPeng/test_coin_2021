@@ -101,7 +101,7 @@ class SpotNeutral1:
                              exchange.get_str_time(),
                              std_price,
                              target_coin,
-                             balance_info['target_coin']['total'],
+                             balance_info[target_coin]['total'],
                              balance_info['USDT']['total'],
                              balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total'],
                              init_value,
@@ -164,7 +164,7 @@ class SpotNeutral1:
 
             balance_info = exchange.fetch_balance()
 
-            current_value = balance_info['target_coin']['total'] * init_price + balance_info['USDT']['total']
+            current_value = balance_info[target_coin]['total'] * init_price + balance_info['USDT']['total']
             min_value = min(min_value, current_value)
             max_value = max(max_value, current_value)
             logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s '
