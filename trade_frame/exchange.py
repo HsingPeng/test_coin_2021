@@ -110,19 +110,19 @@ class Exchange:
                 time.sleep(0.01)
                 continue
 
-    def create_limit_sell_order(self, symbol, *args):
+    def create_limit_sell_order(self, symbol, amount, price):
         while True:
             try:
-                return self.exchange.create_limit_sell_order(symbol, args)
+                return self.exchange.create_limit_sell_order(symbol, amount, price)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.01)
                 continue
 
-    def create_limit_buy_order(self, symbol, *args):
+    def create_limit_buy_order(self, symbol, amount, price):
         while True:
             try:
-                return self.exchange.create_limit_sell_order(symbol, args)
+                return self.exchange.create_limit_sell_order(symbol, amount, price)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.01)

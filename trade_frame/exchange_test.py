@@ -325,9 +325,7 @@ class ExchangeTest:
 
         return order
 
-    def create_limit_sell_order(self, symbol, *args):
-        amount = args[0]
-        price = args[1]
+    def create_limit_sell_order(self, symbol, amount, price):
         cost = amount * price
 
         # 计算余额
@@ -370,9 +368,7 @@ class ExchangeTest:
 
         return order
 
-    def create_limit_buy_order(self, symbol, *args):
-        amount = args[0]
-        price = args[1]
+    def create_limit_buy_order(self, symbol, amount, price):
         cost = amount * price
 
         # 计算余额
