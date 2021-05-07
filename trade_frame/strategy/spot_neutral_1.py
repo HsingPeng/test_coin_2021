@@ -75,12 +75,12 @@ class SpotNeutral1:
                 raise Exception('balance is not enough, something wrong happened')
 
             balance_order_info = None
-            if balance_info[base_coin]['total'] > per_usdt * 150:  # base coin 多于150次，立刻买入，只留100次，因为要尽量持有
-                balance_amount = balance_info[base_coin]['total'] - per_usdt * 100
+            if balance_info[base_coin]['total'] > per_usdt * 400:  # base coin 多于400次，立刻买入，只留200次，因为要尽量持有
+                balance_amount = balance_info[base_coin]['total'] - per_usdt * 200
                 balance_order_info = exchange.create_market_buy_order(symbol, balance_amount)
                 logger.info('[balance value]buy target coin=%s cost=%s' % (target_coin, balance_amount))
             elif balance_info[base_coin]['total'] < per_usdt * 2:      # base coin 不足，卖一些 target coin，得到50次
-                balance_amount = per_usdt / std_price * 50
+                balance_amount = per_usdt / std_price * 100
                 balance_order_info = exchange.create_market_sell_order(symbol, balance_amount)
                 logger.info('[balance value]sell target coin=%s amount=%s' % (target_coin, balance_amount))
 
