@@ -95,7 +95,7 @@ class SpotNeutral1:
                 not_finish = True
                 while not_finish:
                     # 如果没有完成，休眠
-                    exchange.sleep(sleep_time)
+                    exchange.sleep(sleep_time * 2)
                     orders_info = exchange.fetch_orders(symbol)
                     for one_order in orders_info:
                         if balance_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
@@ -140,7 +140,7 @@ class SpotNeutral1:
             not_finish = True
             while not_finish:
                 # 如果没有完成，休眠 0.01 秒
-                exchange.sleep(sleep_time)
+                exchange.sleep(sleep_time * 2)
 
                 orders_info = exchange.fetch_orders(symbol)
                 for one_order in orders_info:
@@ -166,7 +166,7 @@ class SpotNeutral1:
                                           (exchange.get_str_time(), min_price, current_price))
                             if (current_price - min_price) > (std_price * diff_rate):  # 代表回调了一个diff价格
                                 break
-                            exchange.sleep(sleep_time)  # 轮询
+                            exchange.sleep(sleep_time * 4)  # 轮询
                     if sell_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         not_finish = False
                         std_price = one_order['price']
