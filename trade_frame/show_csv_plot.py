@@ -5,13 +5,16 @@ import pandas
 from eplot import eplot
 import sys
 
-if 1 > len(sys.argv):
-    print('usage:python3 show_csv_plot.py filename index_column show_column_1,show_column_2,show_column_3')
+if 2 > len(sys.argv):
+    print('usage:python3 show_csv_plot.py filename index_column [show_column_1,show_column_2,show_column_3]')
     exit(1)
 
 file_name = sys.argv[1]
 index_column = sys.argv[2]
-show_column_list = sys.argv[3].split(',')
+if len(sys.argv) >= 4:
+    show_column_list = sys.argv[3].split(',')
+else:
+    show_column_list = None
 
 df = pandas.read_csv(
     filepath_or_buffer=file_name,
@@ -20,8 +23,9 @@ df = pandas.read_csv(
     index_col=[index_column],
 )
 
-df = df[show_column_list]
+if show_column_list is not None:
+    df = df[show_column_list]
 
 eplot.Config = {'return_type': 'file'}
-line = df.eplot.line()
+line = df.eplot.line(title=file_name)
 line.render(file_name + '.html')
