@@ -45,8 +45,8 @@ class SpotNeutral1:
         symbol = target_coin + '/' + base_coin
 
         sleep_time = 0.1        # 睡眠时间
-        win_num = 0
-        lose_num = 0
+        win_num = 1
+        lose_num = 1
         init_price = None
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
