@@ -57,7 +57,8 @@ class SpotNeutral1:
             extra_fee_mode = False
 
         log_startone_header = ['realtime', 'std_price', 'target_coin', 'base_coin', 'total_value', 'fee_usdt',
-                               'init_value', 'current_value', 'profit_rate', 'max_drawdown', 'win_num', 'lose_num']
+                               'init_value', 'current_value', 'profit_rate', 'max_drawdown', 'win_num', 'lose_num',
+                               'win_rate']
         _controller.header_to_csv(log_startone_header, 'startone')
 
         # 开始循环
@@ -126,6 +127,7 @@ class SpotNeutral1:
                 'max_drawdown': ((max_value - min_value) / max_value),
                 'win_num': win_num,
                 'lose_num': lose_num,
+                'win_rate': win_num / (lose_num + win_num),
             }
             _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
             logline = []
