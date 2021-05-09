@@ -2,7 +2,7 @@
 csv数据可视化
 """
 import pandas
-import matplotlib.pyplot as plt
+from eplot import eplot
 import sys
 
 if 1 > len(sys.argv):
@@ -22,6 +22,6 @@ df = pandas.read_csv(
 
 df = df[show_column_list]
 
-df.plot()
-plt.show()
-exit()
+eplot.Config = {'return_type': 'file'}
+line = df.eplot.line()
+line.render(file_name + '.html')

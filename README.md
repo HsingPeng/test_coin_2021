@@ -10,6 +10,9 @@
 - pip3 install pysocks
 - pip3 install pandas
 - pip3 install matplotlib
+- pip3 install ccxt
+- pip3 install pyecharts
+- pip3 install epoll
 
 国内安装依赖比较慢，换源教程：https://www.jianshu.com/p/142bb83746e5
 

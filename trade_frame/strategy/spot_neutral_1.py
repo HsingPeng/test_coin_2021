@@ -23,6 +23,7 @@ balance_coin = 当前币的数量
 """
 
 import controller
+import backtesting
 import json
 
 
@@ -52,6 +53,10 @@ class SpotNeutral1:
             extra_fee_mode = True
         else:
             extra_fee_mode = False
+
+        log_startone_header = ['realtime', 'std_price', 'target_coin', 'base_coin', 'total_value', 'fee_usdt',
+                               'init_value', 'current_value', 'profit_rate', 'max_drawdown']
+        _controller.header_to_csv(log_startone_header, 'startone')
 
         # 开始循环
         while True:
@@ -105,22 +110,24 @@ class SpotNeutral1:
 
                 continue    # 重开一轮
 
-            logger.info('[start one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s FEE_USDT=%s '
-                        'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
-                        % (
-                             exchange.get_str_time(),
-                             std_price,
-                             target_coin,
-                             balance_info[target_coin]['total'],
-                             balance_info[base_coin]['total'],
-                             balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
-                             - exchange.get_fee_usdt(),
-                             exchange.get_fee_usdt(),
-                             init_value,
-                             current_value,
-                             (current_value - init_value) / init_value,
-                             (max_value - min_value) / max_value,
-                         ))
+            log_startone = {
+                'realtime': exchange.get_str_time(),
+                'std_price': std_price,
+                'target_coin': balance_info[target_coin]['total'],
+                'base_coin': balance_info[base_coin]['total'],
+                'total_value': (balance_info[base_coin]['total']
+                                    + std_price * balance_info[target_coin]['total'] - exchange.get_fee_usdt()),
+                'fee_usdt': exchange.get_fee_usdt(),
+                'init_value': init_value,
+                'current_value': current_value,
+                'profit_rate': ((current_value - init_value) / init_value),
+                'max_drawdown': ((max_value - min_value) / max_value),
+            }
+            _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
+            logline = []
+            for key in log_startone:
+                logline.append('%s=%s' % (key, log_startone[key]))
+            logger.info("[start one]%s" % "\t".join(logline))
 
             # 开一单，卖单
             price = std_price * (1 + diff_rate)
@@ -183,19 +190,18 @@ class SpotNeutral1:
                 - exchange.get_fee_usdt()
             min_value = min(min_value, current_value)
             max_value = max(max_value, current_value)
-            logger.info('[finish one][realtime=%s] std_price=%s %s=%s USDT=%s TOTAL_VALUE=%s FEE_USDT=%s '
-                        'INIT_VALUE=%s CURRENT_VALUE=%s PROFIT_RATE=%s MAX_DRAWDOWN=%s'
-                        % (
-                            exchange.get_str_time(),
-                            std_price,
-                            target_coin,
-                            balance_info[target_coin]['total'],
-                            balance_info[base_coin]['total'],
-                            balance_info[base_coin]['total'] + std_price * balance_info[target_coin]['total']
-                            - exchange.get_fee_usdt(),
-                            exchange.get_fee_usdt(),
-                            init_value,
-                            current_value,
-                            (current_value - init_value) / init_value,
-                            (max_value - min_value) / max_value,
-                        ))
+            logger.info("[finish one]%s" % "\t".join(
+                [
+                    'realtime=%s' % exchange.get_str_time(),
+                    'std_price=%f' % std_price,
+                    'target_coin=%f' % balance_info[target_coin]['total'],
+                    'base_coin=%f' % balance_info[base_coin]['total'],
+                    'total_value=%f' % (balance_info[base_coin]['total']
+                                        + std_price * balance_info[target_coin]['total'] - exchange.get_fee_usdt()),
+                    'fee_usdt=%f' % exchange.get_fee_usdt(),
+                    'init_value=%f' % init_value,
+                    'current_value=%f' % current_value,
+                    'profit_rate=%f' % ((current_value - init_value) / init_value),
+                    'max_drawdown=%f' % ((max_value - min_value) / max_value),
+                ]
+            ))

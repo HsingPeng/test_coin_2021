@@ -21,7 +21,7 @@ class BackTesting:
         target_coin, base_coin, starttime, endtime = params.split('-')
         symbol = target_coin + '/' + base_coin
 
-        c = controller.Controller('log/backtesting_test_%s_%s_%s.log' % (params, _strategy_name, _strategy_params))
+        c = controller.Controller('backtesting_test_%s_%s_%s' % (params, _strategy_name, _strategy_params))
         c.set_exchange('exchange_test.ExchangeTest')
         e = c.get_exchange()
 
@@ -40,7 +40,7 @@ class BackTesting:
         header = ['datetime', 'timestamp', 'id', 'price', 'amount', 'side']
         self.header_to_csv(header, csv_name)
 
-        c = controller.Controller('log/backtesting_getdata_%s.log' % params)
+        c = controller.Controller('backtesting_getdata_%s' % params)
         c.set_exchange('exchange.Exchange')
         e = c.get_exchange()
 

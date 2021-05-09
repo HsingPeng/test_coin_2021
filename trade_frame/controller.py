@@ -16,7 +16,8 @@ class Controller:
     def __init__(self, logname):
         self.exchange = None
         self.logger = None
-        self.set_logging(logname)
+        self.logname = logname
+        self.set_logging('log/%s.log' % logname)
 
     def get_exchange(self) -> exchange.Exchange:
         return self.exchange
@@ -49,3 +50,29 @@ class Controller:
 
         logging.getLogger('ccxt').setLevel(logging.WARNING)
         logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+    def header_to_csv(self, header, csv_flag_name):
+        csv_name = 'output/%s_%s.csv' % (self.logname, csv_flag_name)
+        file = open(csv_name, 'x')
+        file.write("\t".join(header) + "\n")
+        file.close()
+
+    def data_to_csv(self, header, data, csv_flag_name):
+        """
+        从数据里解析数据，存储到csv文件
+        :param header:
+        :param data:
+        :param csv_name:
+        :return :
+        """
+        csv_name = 'output/%s_%s.csv' % (self.logname, csv_flag_name)
+        file = open(csv_name, 'a')
+
+        for deal in data:
+            data = []
+            for key in header:
+                data.append(str(deal[key]))
+            line = "\t".join(data)
+            file.write("%s\n" % line)
+
+        file.close()

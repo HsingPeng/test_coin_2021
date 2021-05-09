@@ -10,7 +10,7 @@ import controller
 class RealTrading:
     def run(self):
         # 运行
-        c = controller.Controller('log/realtrading.log')
+        c = controller.Controller('realtrading')
 
         strategy_name = 'spot_neutral_1.SpotNeutral1'
         exchange_name = 'exchange.Exchange'
