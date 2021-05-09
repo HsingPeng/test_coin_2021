@@ -127,7 +127,7 @@ class SpotNeutral1:
                 'max_drawdown': ((max_value - min_value) / max_value),
                 'win_num': win_num,
                 'lose_num': lose_num,
-                'win_rate': win_num / (lose_num + win_num),
+                'win_rate': (win_num / (lose_num + win_num) - 0.5),
             }
             _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
             logline = []
