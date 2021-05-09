@@ -26,7 +26,7 @@ class BackTesting:
         e = c.get_exchange()
 
         # 初始金额，这种参数先写死吧，之后完善
-        base_amount = 7000
+        base_amount = 10000
         target_amount = 0
         e.load_data('data/backtesting_getdata_%s.pkl' % params, symbol, base_amount, target_amount)
 

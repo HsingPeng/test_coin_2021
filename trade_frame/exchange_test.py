@@ -53,7 +53,7 @@ class ExchangeTest:
         }
         self.fee = 0.00075      # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
         self.fee_usdt = 0           # 费用总额
-        self.request_delay = 0.1     # 模拟请求延迟 秒。每请求一次，时间线都往后走
+        self.request_delay = 0.01     # 模拟请求延迟 秒。每请求一次，时间线都往后走
 
     def gen_id(self) -> int:
         """

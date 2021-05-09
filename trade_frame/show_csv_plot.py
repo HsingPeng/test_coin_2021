@@ -3,6 +3,7 @@ csv数据可视化
 """
 import pandas
 from eplot import eplot
+import matplotlib.pyplot as plt
 import sys
 
 if 2 > len(sys.argv):
@@ -25,6 +26,12 @@ df = pandas.read_csv(
 
 if show_column_list is not None:
     df = df[show_column_list]
+
+"""
+df.plot()
+plt.show()
+exit()
+"""
 
 eplot.Config = {'return_type': 'file'}
 line = df.eplot.line(title=file_name)

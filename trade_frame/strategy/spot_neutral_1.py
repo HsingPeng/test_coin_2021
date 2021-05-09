@@ -45,6 +45,8 @@ class SpotNeutral1:
         symbol = target_coin + '/' + base_coin
 
         sleep_time = 0.1        # 睡眠时间
+        win_num = 0
+        lose_num = 0
         init_price = None
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
@@ -116,12 +118,14 @@ class SpotNeutral1:
                 'target_coin': balance_info[target_coin]['total'],
                 'base_coin': balance_info[base_coin]['total'],
                 'total_value': (balance_info[base_coin]['total']
-                                    + std_price * balance_info[target_coin]['total'] - exchange.get_fee_usdt()),
+                                + std_price * balance_info[target_coin]['total'] - exchange.get_fee_usdt()),
                 'fee_usdt': exchange.get_fee_usdt(),
                 'init_value': init_value,
                 'current_value': current_value,
                 'profit_rate': ((current_value - init_value) / init_value),
                 'max_drawdown': ((max_value - min_value) / max_value),
+                'win_num': win_num,
+                'lose_num': lose_num,
             }
             _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
             logline = []
@@ -154,6 +158,7 @@ class SpotNeutral1:
                     if buy_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         not_finish = False
                         std_price = one_order['price']
+                        lose_num += 1
 
                         if extra_fee_mode:
                             exchange.add_fee_usdt(one_order['cost'])
@@ -177,6 +182,7 @@ class SpotNeutral1:
                     if sell_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         not_finish = False
                         std_price = one_order['price']
+                        win_num += 1
 
                         # 把剩余的撤单
                         exchange.cancel_order(buy_order_info['id'], symbol)
