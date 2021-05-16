@@ -126,13 +126,19 @@ def main():
     # 发送通知
     content = '## **OKEX永续币本位资金费率** \n'
     content += '  **| 30日年化% | 7日年化% | 当日年化% |** \n'
+    i = 0
     for x, y in all_coin_rate.iterrows():
-        x = x.replace('-SWAP', '')
-        content += '\n**' + str(x) + '**：'
+        # x = x.replace('-USDT-SWAP', '')
+        content += '\n|**' + str(x) + '**：'
         y = list(y)
         for _ in y:
             content += str(_) + '  |  '
         content += ' \n'
+        i += 1
+        if i % 30 == 29:
+            send_weixin_msg(content, wx_webhook)
+            print(content)
+            content = ''
     content += ' \n ' + datetime.now().strftime("%m-%d %H:%M:%S")
     print(content)
     send_weixin_msg(content, wx_webhook)
