@@ -84,6 +84,9 @@ class ExchangeTest:
     def get_str_time(self) -> str:
         return self.current_str_time
 
+    def get_int_time(self) -> str:
+        return self.current_time
+
     def get_fee_mode(self) -> str:
         """
         返回费用模式

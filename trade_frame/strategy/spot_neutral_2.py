@@ -31,6 +31,7 @@ import controller
 import math
 import backtesting
 import json
+import pandas
 
 
 class SpotNeutral2:
@@ -56,6 +57,14 @@ class SpotNeutral2:
         win_num = 1
         lose_num = 1
         all_num = 2
+        df = pandas.DataFrame()
+        series = pandas.Series({
+            'time': exchange.get_int_time(),
+            'win_num': 1,
+            'lose_num': 1,
+            'all_num': 2,
+        }, name=exchange.get_int_time())
+        df = df.append(series, ignore_index=True)
 
         init_value = None   # 初始价值
         max_value = None    # 最高价值，用于计算回撤
@@ -67,7 +76,7 @@ class SpotNeutral2:
 
         log_startone_header = ['realtime', 'std_price', 'target_coin', 'base_coin', 'fee_usdt',
                                'init_value', 'current_value', 'profit_rate', 'max_drawdown', 'win_num', 'lose_num',
-                               'all_num', 'win_rate', 'profit_rate_nofee', 'current_coin_value']
+                               'all_num', 'win_rate', 'win_rate_roll', 'profit_rate_nofee', 'current_coin_value']
         _controller.header_to_csv(log_startone_header, 'startone')
 
         # 开始循环
@@ -94,6 +103,7 @@ class SpotNeutral2:
             else:
                 max_value = max(max_value, current_value)
 
+            df = df[df['time'] > (exchange.get_int_time() - 3600 * 24 * 10)]     # 10天内
             log_startone = {
                 'realtime': exchange.get_str_time(),
                 'std_price': std_price,
@@ -110,6 +120,7 @@ class SpotNeutral2:
                 'lose_num': lose_num,
                 'all_num': all_num,
                 'win_rate': (win_num / (lose_num + win_num) - 0.5),
+                'win_rate_roll': (df['win_num'].sum() / (df['lose_num'].sum() + df['win_num'].sum()) - 0.5),
             }
             _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
             logline = []
@@ -140,6 +151,13 @@ class SpotNeutral2:
                         exchange.create_market_sell_order(symbol, buy_order_info['amount'])
 
                     all_num += 1
+                    series = pandas.Series({
+                        'time': exchange.get_int_time(),
+                        'win_num': 0,
+                        'lose_num': 0,
+                        'all_num': 1,
+                    }, name=exchange.get_int_time())
+                    df = df.append(series, ignore_index=True)
                     break
 
                 # 2.2 看看买单有没有成交
@@ -175,6 +193,13 @@ class SpotNeutral2:
 
                                 lose_num += 1
                                 all_num += 1
+                                series = pandas.Series({
+                                    'time': exchange.get_int_time(),
+                                    'win_num': 0,
+                                    'lose_num': 1,
+                                    'all_num': 1,
+                                }, name=exchange.get_int_time())
+                                df = df.append(series, ignore_index=True)
 
                                 # 5 进入回调等待阶段
                                 min_price = std_price
@@ -200,6 +225,13 @@ class SpotNeutral2:
                                     std_price = one_order['price']
                                     win_num += 1
                                     all_num += 1
+                                    series = pandas.Series({
+                                        'time': exchange.get_int_time(),
+                                        'win_num': 1,
+                                        'lose_num': 0,
+                                        'all_num': 1,
+                                    }, name=exchange.get_int_time())
+                                    df = df.append(series, ignore_index=True)
 
                                     # 把剩余的撤单
                                     exchange.cancel_order(buy_order_info['id'], symbol)

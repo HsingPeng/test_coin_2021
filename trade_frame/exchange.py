@@ -35,6 +35,11 @@ class Exchange:
     def get_str_time(self) -> str:
         return datetime.datetime.now().strftime('%H:%M:%S.%f')
 
+    def get_int_time(self) -> int:
+        atime = datetime.datetime.utcfromtimestamp(0)
+        atime = atime.replace(tzinfo=datetime.timezone.utc)
+        return (datetime.datetime.now() - atime).total_seconds()
+
     def load_data(self, filename, symbol, base_amount, target_amount):
         pass
 
@@ -69,6 +74,18 @@ class Exchange:
         while True:
             try:
                 return self.exchange.fetch_ticker(symbol, params)
+            except Exception as e:
+                self.logger.debug('[exchange retry]%s' % e)
+                time.sleep(0.01)
+                continue
+
+    def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params=None):
+        if params is None:
+            params = {}
+
+        while True:
+            try:
+                return self.exchange.fetch_ohlcv(symbol, timeframe, since, limit, params)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.01)

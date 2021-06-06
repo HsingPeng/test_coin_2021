@@ -9,6 +9,7 @@ import controller
 import pandas
 import importlib
 from multiprocessing.pool import Pool
+import time
 import json
 
 
@@ -18,7 +19,7 @@ class BackTesting:
         pass
 
     def test(self, params: str, _strategy_name: str, _strategy_params: str):
-        target_coin, base_coin, starttime, endtime = params.split('-')
+        target_coin, base_coin, starttime, endtime, time_interval = params.split('-')
         symbol = target_coin + '/' + base_coin
 
         c = controller.Controller('backtesting_test_%s_%s_%s' % (params, _strategy_name, _strategy_params))
@@ -33,6 +34,11 @@ class BackTesting:
         c.run(_strategy_name, _strategy_params)
 
     def getdata(self, params: str):
+        """
+        成交历史
+        :param params:
+        :return:
+        """
         target_coin, base_coin, starttime, endtime = params.split('-')
         symbol = target_coin + '/' + base_coin
 
@@ -48,9 +54,9 @@ class BackTesting:
         from_id = None
         while True:
             if from_id is None:
-                data = e.fetch_trades(symbol, since=int(starttime), limit=500)
+                data = e.fetch_trades(symbol, since=int(starttime), limit=1000)
             else:
-                data = e.fetch_trades(symbol, limit=500, params={'fromId': from_id})   # 可能会超过一点截止时间
+                data = e.fetch_trades(symbol, limit=1000, params={'fromId': from_id})   # 可能会超过一点截止时间
 
             if 0 == len(data):
                 break
@@ -60,6 +66,55 @@ class BackTesting:
             from_id = int(data[-1]['id']) + 1
             self.data_to_csv(header, data, csv_name)
 
+            if data[-1]['timestamp'] >= int(endtime):
+                break
+
+    def get_ohlcv_data(self, params: str):
+        """
+        K线历史
+        :param params:
+        :return:
+        """
+        target_coin, base_coin, starttime, endtime, time_interval = params.split('-')
+        symbol = target_coin + '/' + base_coin
+
+        csv_name = 'data/backtesting_getdata_%s.csv' % params
+        header = ['datetime', 'timestamp', 'price', 'volume', 'open', 'high', 'low', 'close']
+        self.header_to_csv(header, csv_name)
+
+        c = controller.Controller('backtesting_get_ohlcv_data_%s' % params)
+        c.set_exchange('exchange.Exchange')
+        e = c.get_exchange()
+
+        # 获取数据
+        start_time_since = int(starttime)
+        running = True
+        while running:
+            data_row = e.fetch_ohlcv(symbol=symbol, timeframe=time_interval, since=start_time_since, limit=1000)
+            # [[1622822400000, 2658.01, 2658.49, 2650.98, 2652.05, 2116.27542],[...]]
+
+            data = []
+            for row in data_row:
+                if int(row[0]) >= int(endtime):
+                    running = False
+                    continue
+
+                data.append({
+                    "datetime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(row[0]) / 1000)),
+                    "timestamp": row[0],
+                    "price": row[1],
+                    "volume": row[5],
+                    "open": row[1],
+                    "high": row[2],
+                    "low": row[3],
+                    "close": row[4],
+                })
+
+            data = sorted(data, key=lambda d: int(d['timestamp']))
+
+            self.data_to_csv(header, data, csv_name)
+
+            start_time_since = data[-1]['timestamp']
             if data[-1]['timestamp'] >= int(endtime):
                 break
 
@@ -129,6 +184,8 @@ if __name__ == "__main__":
 
     if 'getdata' == sys.argv[1]:
         trading.getdata(params)
+    if 'get_ohlcv_data' == sys.argv[1]:
+        trading.get_ohlcv_data(params)
     elif 'test' == sys.argv[1]:
         if 5 > len(sys.argv):
             print(usage)
