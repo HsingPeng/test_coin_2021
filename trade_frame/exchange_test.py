@@ -51,7 +51,7 @@ class ExchangeTest:
         self.orders = {
             'EOS/USDT': []
         }
-        self.fee = 0.00075      # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
+        self.fee = 0.00075           # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
         self.fee_usdt = 0           # 费用总额
         self.request_delay = 0.01     # 模拟请求延迟 秒。每请求一次，时间线都往后走
 
@@ -425,7 +425,7 @@ class ExchangeTest:
         for i in range(len(self.orders[symbol])):
             if id == self.orders[symbol][i]['id']:
                 if 'open' != self.orders[symbol][i]['status']:
-                    self.logger.debug('[exchange no retry]fake order status error. id:%s orders:%s' % (id, json.dumps(self.orders)))
+                    self.logger.debug('[exchange no retry][cancel_order]fake order status error. id:%s orders:%s' % (id, json.dumps(self.orders)))
                     return None
 
                 self.orders[symbol][i]['status'] = 'canceled'

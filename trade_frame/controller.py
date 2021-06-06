@@ -43,7 +43,7 @@ class Controller:
         stdout_handler.setFormatter(formatter)
 
         logger = logging.getLogger('trade_frame.%s' % filename)
-        logger.setLevel(logging.INFO)      # 设置级别
+        logger.setLevel(logging.DEBUG)      # 设置级别
         logger.addHandler(file_handler)
         # logger.addHandler(stdout_handler)       # 同时在命令行输出
         self.logger = logger
