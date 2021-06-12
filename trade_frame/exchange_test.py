@@ -333,7 +333,7 @@ class ExchangeTest:
 
         # 计算余额
         target, base = symbol.split('/')
-        if self.balance[target]['free'] < amount:
+        if self.balance[target]['free'] < amount or amount <= 0:
             raise Exception('insufficient coin:%s amount:%s' % (target, amount))
 
         self.balance[target]['free'] -= amount

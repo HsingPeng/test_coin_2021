@@ -140,8 +140,8 @@ class SpotNeutral4:
                         logger.debug('[%s] [closed buy]amount=%s, price=%s' %
                                      (exchange.get_str_time(), one_order['amount'], one_order['price']))
 
-                    waiting = False
-                    break
+                        waiting = False
+                        break
 
                 exchange.sleep(sleep_time)
 
