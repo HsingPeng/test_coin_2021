@@ -19,7 +19,12 @@ class BackTesting:
         pass
 
     def test(self, params: str, _strategy_name: str, _strategy_params: str):
-        target_coin, base_coin, starttime, endtime, time_interval = params.split('-')
+        params_list = params.split('-')
+        if 4 == len(params_list):
+            target_coin, base_coin, starttime, endtime = params.split('-')
+        else:
+            target_coin, base_coin, starttime, endtime, time_interval = params.split('-')
+
         symbol = target_coin + '/' + base_coin
 
         c = controller.Controller('backtesting_test_%s_%s_%s' % (params, _strategy_name, _strategy_params))
