@@ -186,7 +186,7 @@ class SpotNeutral2:
                                 # 又下跌了一个diff，撤掉之前的单子
                                 exchange.cancel_order(sell_order_info['id'], symbol)
                                 # 立刻卖掉
-                                amount = one_order['amount']
+                                amount = sell_order_info['amount']
                                 sell_order_info = exchange.create_market_sell_order(symbol, amount)
                                 logger.debug('[%s] [create market sell]amount=%s' %
                                              (exchange.get_str_time(), sell_order_info['amount']))
