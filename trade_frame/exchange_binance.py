@@ -1,5 +1,5 @@
 """
-封装ccxt exchange对象，支持模拟复写
+binance
 @Author : bboxhe@gmail.com
 
 """
@@ -9,14 +9,72 @@ import conf.conf
 import logging
 import time
 import datetime
+import sys
+import threading
+import websocket
 
 
-class Exchange:
+class WsThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.ws = None
+        self.url = 'wss://stream.binance.com:9443/stream?streams=btcusdt@aggTrade/T80T31ljwp4Sz0G1HAOGbhxOjD3OuB3RiFPyjJqr8PV4dNPkUrjDHNf0yv23'
+
+    def run(self):
+        self.ws = websocket.WebSocketApp(self.url,
+                                         on_open=self.on_open,
+                                         on_message=self.on_message,
+                                         on_error=self.on_error,
+                                         on_close=self.on_close)
+        # 针对网络设置代理
+        if conf.conf.Config.http_proxy_host is not None:
+            host = conf.conf.Config.http_proxy_host
+            port = conf.conf.Config.http_proxy_port
+            proxy_type = conf.conf.Config.proxy_type
+            self.ws.run_forever(http_proxy_host=host, http_proxy_port=port, proxy_type=proxy_type)
+        else:
+            self.ws.run_forever()
+
+    def on_message(self, ws, message):
+        print("####### on_message #######")
+        print(self)
+        print(message)
+
+    def on_error(self, ws, error):
+        print("####### on_error #######")
+        print(self)
+        print(error)
+
+    def on_close(self, ws, close_status_code, close_msg):
+        print("####### on_close #######")
+        print(self)
+        self.ws = None
+
+    def on_open(self, ws):
+        print("####### on_open #######")
+        print(self)
+
+    def heartbeat(self):
+        print("####### heartbeat #######")
+
+
+class ExchangeBinance:
     def __init__(self, logger: logging.Logger):
         self.logger = logger
-        self.exchange = None
-        self.fee = 0.00075  # 这里需要手动填写上正确的费用率
-        self.fee_usdt = 0   # 初始化手续费统计变量
+        exchange = ccxt.binance()
+
+        # 针对网络设置代理
+        if conf.conf.Config.proxies is not None:
+            exchange.proxies = conf.conf.Config.proxies
+
+        # API 密钥设置
+        exchange.apiKey = conf.conf.Config.binance_api_key
+        exchange.secret = conf.conf.Config.binance_secret_key
+        exchange.password = ''  # okex在创建第三代api的时候，需要填写一个Passphrase。这个填写到这里即可
+
+        self.exchange = exchange
+        self.fee = 0.00075  # binance 扣的是 bnb，这里需要手动填写上正确的费用率
+        self.fee_usdt = 0
 
     def sleep(self, second):
         time.sleep(second)
@@ -92,13 +150,13 @@ class Exchange:
                 time.sleep(0.01)
                 continue
 
-    def create_market_buy_order(self, symbol, cost, params=None):
+    def create_market_buy_order(self, symbol, amount, params=None):
         if params is None:
             params = {}
 
         while True:
             try:
-                self.exchange.create_market_buy_order(symbol, cost, params)
+                self.exchange.create_market_buy_order(symbol, amount, params)
             except Exception as e:
                 self.logger.debug('[exchange retry]%s' % e)
                 time.sleep(0.01)
@@ -181,4 +239,22 @@ class Exchange:
         使用 websocket 推送行情和成交记录。需要子类实现
         :return:
         """
-        raise Exception('未实现方法')
+
+        # 获取 listen key
+        ret = self.exchange.publicPostUserDataStream()
+        spot_listen_key = ret['listenKey']
+
+        # 开启 websocket
+
+
+        pass
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger('exchange_binance')
+    logger.setLevel(logging.DEBUG)  # 设置级别
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(stdout_handler)       # 同时在命令行输出
+
+    exchange = ExchangeBinance(logger)
+    exchange.start_websocket_push()

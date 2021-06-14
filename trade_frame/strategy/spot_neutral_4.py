@@ -120,10 +120,9 @@ class SpotNeutral4:
             logger.info("[start one]%s" % "\t".join(logline))
 
             # 1 开一单，市价买单
-            amount = per_usdt / std_price
-            buy_order_info = exchange.create_market_buy_order(symbol, amount)
-            logger.debug('[%s] [create buy]amount=%s, price=%s' %
-                         (exchange.get_str_time(), buy_order_info['amount'], buy_order_info['price']))
+            buy_order_info = exchange.create_market_buy_order(symbol, per_usdt)
+            logger.debug('[%s] [create buy]cost=%s, price=%s' %
+                         (exchange.get_str_time(), buy_order_info['cost'], buy_order_info['price']))
 
             # 等待成交
             waiting = True
@@ -134,8 +133,6 @@ class SpotNeutral4:
                     # 成交了
                     if buy_order_info['id'] == one_order['id'] and 'closed' == one_order['status']:
                         buy_amount = one_order['amount']
-                        if extra_fee_mode:
-                            exchange.add_fee_usdt(one_order['cost'])
 
                         logger.debug('[%s] [closed buy]amount=%s, price=%s' %
                                      (exchange.get_str_time(), one_order['amount'], one_order['price']))

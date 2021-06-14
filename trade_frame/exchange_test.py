@@ -152,7 +152,9 @@ class ExchangeTest:
                     self.balance[target]['used'] -= amount
                     self.balance[target]['total'] -= amount
                     if 'extra' != self.get_fee_mode():
-                        cost = cost * (1 - self.fee)  # 模拟扣费
+                        cost = cost * (1 - self.fee)    # 模拟扣费
+                    else:
+                        self.add_fee_usdt(cost)         # 添加到单独费用记录
                     self.balance[base]['free'] += cost
                     self.balance[base]['total'] += cost
                 elif 'buy' == order['side'] and ('market' == order['type'] or row['price'] <= order['price']):
@@ -179,6 +181,8 @@ class ExchangeTest:
                     self.balance[base]['total'] -= cost
                     if 'extra' != self.get_fee_mode():
                         amount = amount * (1 - self.fee)
+                    else:
+                        self.add_fee_usdt(cost)              # 添加到单独费用记录
                     self.balance[target]['free'] += amount
                     self.balance[target]['total'] += amount
 
