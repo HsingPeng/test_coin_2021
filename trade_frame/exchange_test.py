@@ -51,8 +51,10 @@ class ExchangeTest:
         self.orders = {
             'EOS/USDT': []
         }
-        self.fee = 0.00075           # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧
-        self.fee_usdt = 0           # 费用总额
+        self.fee = 0.00075           # binance 扣的是 bnb，模拟的时候先用 usdt 扣吧。这是现货。
+        # self.fee = 0.00036           # 这是U本位合约，Taker。
+        # self.fee = 0.00018           # 这是U本位合约，Maker。
+        self.fee_usdt = 0           # 费用总额。当前是手续费。
         self.request_delay = 0.01     # 模拟请求延迟 秒。每请求一次，时间线都往后走
 
     def gen_id(self) -> int:

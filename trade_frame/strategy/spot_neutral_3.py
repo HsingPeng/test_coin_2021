@@ -11,6 +11,7 @@ diff_price = std_price * diff_rate
 - 下跌一个为 num=0
 - 下跌两个及以上为 num=1+
 
+舍弃第一单 -1
 统计：
 -  "0" / ("0" + "1+") - 1
 - 1天比例 3天比例 5天比例
@@ -109,7 +110,7 @@ class SpotNeutral3:
             df_3d = df[df['time'] > (exchange.get_int_time() - 3600 * 24 * 3)]     # 3天
             df_1d = df[df['time'] > (exchange.get_int_time() - 3600 * 24 * 1)]     # 1天
             df_12h = df[df['time'] > (exchange.get_int_time() - 3600 * 12)]     # 12小时
-            df_6h = df[df['time'] > (exchange.get_int_time() - 3600 * 6)]     # 12小时
+            df_6h = df[df['time'] > (exchange.get_int_time() - 3600 * 6)]     # 6小时
             log_startone = {
                 'realtime': exchange.get_str_time(),
                 'std_price': std_price,
