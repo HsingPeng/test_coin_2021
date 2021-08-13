@@ -44,7 +44,12 @@ class BackTesting:
         :param params:
         :return:
         """
-        target_coin, base_coin, starttime, endtime = params.split('-')
+        params_list = params.split('-')
+        if 4 == len(params_list):
+            trade_type = 'spot'
+            target_coin, base_coin, starttime, endtime = params.split('-')
+        else:
+            target_coin, base_coin, starttime, endtime, trade_type = params.split('-')
         symbol = target_coin + '/' + base_coin
 
         csv_name = 'data/backtesting_getdata_%s.csv' % params
@@ -52,17 +57,18 @@ class BackTesting:
         self.header_to_csv(header, csv_name)
 
         c = controller.Controller('backtesting_getdata_%s' % params)
-        c.set_exchange('exchange.Exchange')
+        c.set_exchange('exchange_binance.ExchangeBinance')
         e = c.get_exchange()
 
         # 获取数据
         from_id = None
         while True:
+            print(starttime)
             if from_id is None:
-                data = e.fetch_trades(symbol, since=int(starttime), limit=1000)
+                data = e.fetch_trades(symbol, since=int(starttime), limit=1000, params={'type': trade_type})
             else:
-                data = e.fetch_trades(symbol, limit=1000, params={'fromId': from_id})   # 可能会超过一点截止时间
-
+                # 可能会超过一点截止时间
+                data = e.fetch_trades(symbol, limit=1000, params={'fromId': from_id, 'type': trade_type})
             if 0 == len(data):
                 break
 
@@ -189,7 +195,7 @@ if __name__ == "__main__":
 
     if 'getdata' == sys.argv[1]:
         trading.getdata(params)
-    if 'get_ohlcv_data' == sys.argv[1]:
+    elif 'get_ohlcv_data' == sys.argv[1]:
         trading.get_ohlcv_data(params)
     elif 'test' == sys.argv[1]:
         if 5 > len(sys.argv):

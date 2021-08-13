@@ -7,6 +7,7 @@
 import conf.conf
 import exchange
 import exchange_test
+import exchange_binance
 import logging
 import sys
 import importlib
