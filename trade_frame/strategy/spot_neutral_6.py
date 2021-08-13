@@ -2,6 +2,8 @@
 中性做市策略，一种网格。spot_neutral_4 的舍弃第一单的版本。spot_neutral_3 指标策略的可执行版本。
 @Author : bboxhe@gmail.com
 
+相比于 spot_neutral_5 添加了 x小时 累计赢率过滤，高于 y% 才开仓
+
 假设 diff = 1%
 1 个单位的币：
 1 上涨到-> 1.01 盈利卖出 全部
@@ -31,7 +33,7 @@ import json
 import pandas
 
 
-class SpotNeutral5:
+class SpotNeutral6:
     def __win_rate(self, df, exchange, hour_section):
         df = df[df['time'] > (exchange.get_int_time() - int(3600 * hour_section))]  # 保留指定小时
         return ((df['win_num'].sum() + 1) / (df['lose_num'].sum() + df['win_num'].sum() + 2)) - 0.5
@@ -40,7 +42,9 @@ class SpotNeutral5:
         exchange = _controller.get_exchange()
         logger = exchange.logger
 
-        diff_rate, target_coin, base_coin, total_coin_value = params.split('-')
+        diff_rate, target_coin, base_coin, total_coin_value, x_hour, y_rate = params.split('-')
+        x_hour = float(x_hour)
+        y_rate = int(y_rate)
 
         diff_rate = float(diff_rate)
         total_coin_value = float(total_coin_value)
@@ -49,12 +53,14 @@ class SpotNeutral5:
         symbol = target_coin + '/' + base_coin
 
         sleep_time = 0.01        # 睡眠时间
+        real_win_num = 1
         win_num = 1
         lose_num = 1
         all_num = 2
         df = pandas.DataFrame()
         series = pandas.Series({
             'time': exchange.get_int_time(),
+            'real_win_num': 1,
             'win_num': 1,
             'lose_num': 1,
             'all_num': 2,
@@ -66,7 +72,8 @@ class SpotNeutral5:
         min_value = None    # 最低价值，用于计算回撤
 
         log_startone_header = ['realtime', 'std_price', 'target_coin', 'base_coin', 'fee_usdt',
-                               'init_value', 'current_value', 'profit_rate', 'max_drawdown', 'win_num', 'lose_num',
+                               'init_value', 'current_value', 'profit_rate', 'max_drawdown',
+                               'real_deal', 'real_win_num', 'win_num', 'lose_num', 'real_win_rate',
                                'all_num', 'win_rate', 'win_rate_12h', 'win_rate_6h', 'win_rate_3h', 'win_rate_1h',
                                'win_rate_0.5h',
                                'profit_rate_nofee', 'current_coin_value']
@@ -112,7 +119,13 @@ class SpotNeutral5:
             else:
                 max_value = max(max_value, current_value)
 
-            df = df[df['time'] > (exchange.get_int_time() - 3600 * 12)]     # 12小时
+            df = df[df['time'] > (exchange.get_int_time() - 3600 * 12)]  # 12小时
+
+            # 计算开仓指标
+            real_deal = False
+            if self.__win_rate(self, df, exchange, x_hour) > (y_rate / 100):
+                real_deal = True
+
             log_startone = {
                 'realtime': exchange.get_str_time(),
                 'std_price': std_price,
@@ -125,9 +138,12 @@ class SpotNeutral5:
                 'profit_rate': ((current_value - init_value) / init_value),
                 'profit_rate_nofee': ((current_value - init_value + exchange.get_fee_usdt()) / init_value),
                 'max_drawdown': ((max_value - min_value) / max_value),
+                'real_deal': real_deal,
+                'real_win_num': real_win_num,
                 'win_num': win_num,
                 'lose_num': lose_num,
                 'all_num': all_num,
+                'real_win_rate': (real_win_num / (lose_num + win_num) - 0.5),
                 'win_rate': (win_num / (lose_num + win_num) - 0.5),
                 'win_rate_12h': self.__win_rate(self, df, exchange, 12),
                 'win_rate_6h': self.__win_rate(self, df, exchange, 6),
@@ -182,6 +198,7 @@ class SpotNeutral5:
                         all_num += 1
                         series = pandas.Series({
                             'time': exchange.get_int_time(),
+                            'real_win_num': 1 if real_deal else 0,
                             'win_num': 1,
                             'lose_num': 0,
                             'all_num': 1,
@@ -211,6 +228,7 @@ class SpotNeutral5:
                     all_num += 1
                     series = pandas.Series({
                         'time': exchange.get_int_time(),
+                        'real_win_num': 0,
                         'win_num': 0,
                         'lose_num': 1,
                         'all_num': 1,
