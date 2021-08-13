@@ -13,6 +13,7 @@
 - pip3 install ccxt
 - pip3 install pyecharts
 - pip3 install epoll
+- pip3 install websocket-client
 
 国内安装依赖比较慢，换源教程：https://www.jianshu.com/p/142bb83746e5
 

@@ -32,6 +32,10 @@ import pandas
 
 
 class SpotNeutral5:
+    def __win_rate(self, df, exchange, hour_section):
+        df = df[df['time'] > (exchange.get_int_time() - int(3600 * hour_section))]  # 保留指定小时
+        return df['win_num'].sum() / (df['lose_num'].sum() + df['win_num'].sum()) - 0.5
+
     def exec(self, _controller: controller.Controller, params: str):
         exchange = _controller.get_exchange()
         logger = exchange.logger
@@ -63,7 +67,9 @@ class SpotNeutral5:
 
         log_startone_header = ['realtime', 'std_price', 'target_coin', 'base_coin', 'fee_usdt',
                                'init_value', 'current_value', 'profit_rate', 'max_drawdown', 'win_num', 'lose_num',
-                               'all_num', 'win_rate', 'win_rate_12h', 'profit_rate_nofee', 'current_coin_value']
+                               'all_num', 'win_rate', 'win_rate_12h', 'win_rate_6h', 'win_rate_3h', 'win_rate_1h',
+                               'win_rate_0.5h',
+                               'profit_rate_nofee', 'current_coin_value']
         _controller.header_to_csv(log_startone_header, 'startone')
 
         # 开始循环
@@ -123,7 +129,11 @@ class SpotNeutral5:
                 'lose_num': lose_num,
                 'all_num': all_num,
                 'win_rate': (win_num / (lose_num + win_num) - 0.5),
-                'win_rate_12h': (df['win_num'].sum() / (df['lose_num'].sum() + df['win_num'].sum()) - 0.5),
+                'win_rate_12h': self.__win_rate(self, df, exchange, 12),
+                'win_rate_6h': self.__win_rate(self, df, exchange, 6),
+                'win_rate_3h': self.__win_rate(self, df, exchange, 3),
+                'win_rate_1h': self.__win_rate(self, df, exchange, 1),
+                'win_rate_0.5h': self.__win_rate(self, df, exchange, 0.5),
             }
             _controller.data_to_csv(log_startone_header, [log_startone], 'startone')
             logline = []
