@@ -2,9 +2,34 @@
 csv数据可视化
 """
 import pandas
-from eplot import eplot
-import matplotlib.pyplot as plt
 import sys
+import pyecharts
+
+
+def line(data, file_name):
+    lineFig = pyecharts.charts.Line()
+    lineFig.set_global_opts(
+        title_opts=pyecharts.options.TitleOpts(
+            title=file_name,
+            title_textstyle_opts=pyecharts.options.TextStyleOpts(
+                font_size=10
+            )
+        ),
+        legend_opts=pyecharts.options.LegendOpts(pos_top=10),
+        datazoom_opts=pyecharts.options.DataZoomOpts(type_="slider")
+    )
+    if isinstance(data, pandas.Series):
+        lineFig.add_xaxis(data.index.tolist())
+        lineFig.add_yaxis(data.name, data.values.tolist())
+    elif isinstance(data, pandas.DataFrame):
+        useCols = data.columns
+        manyLineConfig = {}
+        for i in useCols:
+            lineFig.add_xaxis(data.index.tolist())\
+                .add_yaxis(i, data[i].tolist(), **manyLineConfig.get(i, {}))
+    lineFig.set_series_opts(label_opts=pyecharts.options.LabelOpts(is_show=False))
+    lineFig.render(file_name + '.html')
+
 
 if 2 > len(sys.argv):
     print('usage:python3 show_csv_plot.py filename index_column [show_column_1,show_column_2,show_column_3]')
@@ -33,6 +58,4 @@ plt.show()
 exit()
 """
 
-eplot.Config = {'return_type': 'file'}
-line = df.eplot.line(title=file_name)
-line.render(file_name + '.html')
+line(df, file_name)
